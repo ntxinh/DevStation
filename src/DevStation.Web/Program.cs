@@ -1,0 +1,37 @@
+using DevStation.Web.Modules.Health;
+using DevStation.Web.Shared.Auth;
+using DevStation.Web.Shared.Middleware;
+using DevStation.Web.Shared.Modules;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+
+var b = WebApplication.CreateBuilder(args);
+
+// env DEVSTATION_TOKEN -> DevStation:Token
+b.Configuration["DevStation:Token"] ??= b.Configuration["DEVSTATION_TOKEN"];
+
+b.Services.AddAuthentication("DevToken")
+    .AddScheme<AuthenticationSchemeOptions, DevTokenAuthenticationHandler>("DevToken", _ => { });
+b.Services.AddAuthorization(o =>
+{
+    foreach (var t in new[] { "Read", "Execute", "Deploy", "Admin" })
+        o.AddPolicy(t, p => p.Requirements.Add(new TierRequirement(t.ToLowerInvariant())));
+});
+b.Services.AddSingleton<IAuthorizationHandler, TierHandler>();
+// module DI + DbContext added by later tasks via extension methods
+
+var app = b.Build();
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<ApiExceptionMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok", uptime = Environment.TickCount64 }))
+    .AllowAnonymous();
+
+var api = app.MapModuleEndpoints();
+HealthModule.Map(api); // placeholder returning module status list — replaced by real module in Phase 2
+
+app.Run();
+
+public partial class Program { } // for WebApplicationFactory

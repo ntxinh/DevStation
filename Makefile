@@ -3,7 +3,7 @@ setup: ; pnpm --dir apps/web install && dotnet restore src/DevStation.sln
 dev: ; ./scripts/dev.sh
 build: ; dotnet build src/DevStation.sln && pnpm --dir apps/web build
 test: test-unit test-integration ; pnpm --dir apps/web test -- --run
-test-unit: ; dotnet test tests/unit -v minimal
+test-unit: ; dotnet test tests/unit/DevStation.Tests.Unit -v minimal
 test-integration: ; DOCKER_HOST=unix://$$XDG_RUNTIME_DIR/podman/podman.sock dotnet test tests/integration -v minimal
 test-e2e: ; pnpm --dir apps/web exec playwright test
 lint: ; dotnet format src/DevStation.sln --verify-no-changes ; pnpm --dir apps/web lint
