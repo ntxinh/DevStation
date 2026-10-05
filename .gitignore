@@ -1,1 +1,18 @@
+# dotnet
+bin/
+obj/
+*.user
+TestResults/
+
+# node
+node_modules/
+.next/
+playwright-report/
+
+# env / ide
+.env
+.idea/
+.vs/
+
+# worktrees
 .worktrees/
