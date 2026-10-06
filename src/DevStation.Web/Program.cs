@@ -10,6 +10,7 @@ using DevStation.Application.Modules.Logs;
 using DevStation.Application.Modules.Services;
 using DevStation.Application.Modules.Commands;
 using DevStation.Application.Modules.Notifications;
+using DevStation.Application.Modules.Integrations;
 using DevStation.Application.Shared.Notifications;
 using DevStation.Application.Shared.Providers;
 using DevStation.Application.Shared.Logging;
@@ -28,6 +29,7 @@ using DevStation.Web.Modules.Audit;
 using DevStation.Web.Modules.Search;
 using DevStation.Web.Modules.Commands;
 using DevStation.Web.Modules.Notifications;
+using DevStation.Web.Modules.Integrations;
 using DevStation.Web.Modules.Projects;
 using DevStation.Web.Modules.Services;
 using DevStation.Web.Shared.Auth;
@@ -64,6 +66,7 @@ b.Services.AddProjectsModule().AddDashboardModule()
     .AddDeploymentsModule()
     .AddCommandsModule()
     .AddNotificationsModule()
+    .AddIntegrationsModule()
     .AddLogsModule();
 
 var app = b.Build();
@@ -90,6 +93,7 @@ AuditEndpoints.Map(api);
 SearchEndpoints.Map(api);
 CommandsEndpoints.Map(api);
 NotificationsEndpoints.Map(api);
+IntegrationsEndpoints.Map(api);
 app.MapHub<HealthHub>("/hubs/health").RequireAuthorization("Read");
 app.MapHub<JobsHub>("/hubs/jobs").RequireAuthorization("Read");
 app.MapHub<DeploymentsHub>("/hubs/deployments").RequireAuthorization("Read");

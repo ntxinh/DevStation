@@ -9,7 +9,9 @@ using DevStation.Infrastructure.Containers;
 using DevStation.Infrastructure.Databases;
 using DevStation.Infrastructure.Deployments;
 using DevStation.Infrastructure.Git;
+using DevStation.Infrastructure.GitHub;
 using DevStation.Infrastructure.Health;
+using DevStation.Infrastructure.Integrations;
 using DevStation.Infrastructure.Jobs;
 using DevStation.Infrastructure.Logging;
 using DevStation.Infrastructure.Logs;
@@ -83,6 +85,18 @@ public static class DependencyInjection
                     sp.GetService<ILogger<MockDeploymentProvider>>());
             return provider;
         });
+
+        // integrations — GitHubApiClient is a typed HttpClient; the providers
+        // wrap it (singletons own in-memory configured state)
+        services.AddHttpClient<GitHubApiClient>();
+        services.AddSingleton<GitHubIntegration>();
+        services.AddSingleton<JiraIntegration>();
+        services.AddSingleton<AzureIntegration>();
+        services.AddSingleton<CloudflareIntegration>();
+        services.AddSingleton<IIntegration>(sp => sp.GetRequiredService<GitHubIntegration>());
+        services.AddSingleton<IIntegration>(sp => sp.GetRequiredService<JiraIntegration>());
+        services.AddSingleton<IIntegration>(sp => sp.GetRequiredService<AzureIntegration>());
+        services.AddSingleton<IIntegration>(sp => sp.GetRequiredService<CloudflareIntegration>());
 
         // jobs — Quartz in-memory store; job_definitions/executions are the DB view
         IReadOnlyList<JobRegistration> jobs =

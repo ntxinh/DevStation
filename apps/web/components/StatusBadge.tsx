@@ -1,20 +1,21 @@
 const DOT: Record<string, string> = {
   healthy: "bg-ok",
   ok: "bg-ok",
-  running: "bg-ok",
   queued: "bg-warn",
   warn: "bg-warn",
   degraded: "bg-warn",
   paused: "bg-warn",
+  configured: "bg-warn",
   unhealthy: "bg-err",
   err: "bg-err",
+  error: "bg-err",
   failing: "bg-err",
   failed: "bg-err",
   "never-run": "bg-muted",
+  notconfigured: "bg-muted",
+  disabled: "bg-muted",
   succeeded: "bg-ok",
-  dead: "bg-err",
-  cancelled: "bg-muted",
-  unknown: "bg-muted",
+  connected: "bg-ok",
 };
 
 export type BadgeStatus = keyof typeof DOT;
