@@ -29,6 +29,9 @@ public class SqlGuardTests
     // Dangerous
     [InlineData("DROP TABLE t", SqlTier.Dangerous)]
     [InlineData("TRUNCATE t", SqlTier.Dangerous)]
+    [InlineData("SELECT * INTO t FROM u", SqlTier.Write)]
+    [InlineData("SELECT a INTO TEMPORARY t FROM u", SqlTier.Write)]
+    [InlineData("SELECT * INTO #tmp FROM t", SqlTier.Write)]
     [InlineData("ALTER TABLE t ADD c int", SqlTier.Dangerous)]
     [InlineData("CREATE TABLE t (a int)", SqlTier.Dangerous)]
     [InlineData("GRANT SELECT ON t TO u", SqlTier.Dangerous)]

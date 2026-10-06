@@ -43,22 +43,46 @@ public sealed class ExecuteQueryHandler(IDevStationDb db,
 
         var verdict = SqlGuard.Classify(sql);
         var tier = verdict.Tier;
+        var shortSql = sql.Length > 4000 ? sql[..4000] : sql;
+        var userName = user.Identity?.Name;
+
+        // blocked attempts are exactly what should be audited — record the
+        // rejection before throwing (sql truncated, no param values).
+        // CancellationToken.None so a client abort can't skip the audit trail.
 
         if (conn.ReadOnly && tier > SqlTier.Read)
+        {
+            await audit.Record("db.query.rejected", "database_connection",
+                conn.Id, userName, "blocked:SQL_READONLY",
+                new { tier = tier.ToString(), verdict.MultiStatement, sql = shortSql },
+                CancellationToken.None);
             throw new AppException("SQL_READONLY", 403,
                 $"connection is read-only ({verdict.Reason})");
+        }
 
         var envType = conn.EnvironmentId is { } envId
             ? await db.Environments.Where(e => e.Id == envId)
                 .Select(e => e.Type).FirstOrDefaultAsync(ct)
             : null;
         if (envType == "production" && tier > SqlTier.Read)
+        {
+            await audit.Record("db.query.rejected", "database_connection",
+                conn.Id, userName, "blocked:SQL_PROD_WRITE_BLOCKED",
+                new { tier = tier.ToString(), verdict.MultiStatement, sql = shortSql },
+                CancellationToken.None);
             throw new AppException("SQL_PROD_WRITE_BLOCKED", 403,
                 "writes are never allowed on production-linked connections");
+        }
 
         if (tier == SqlTier.Dangerous && !confirm)
+        {
+            await audit.Record("db.query.rejected", "database_connection",
+                conn.Id, userName, "blocked:CONFIRMATION_REQUIRED",
+                new { tier = tier.ToString(), verdict.MultiStatement, sql = shortSql },
+                CancellationToken.None);
             throw new AppException("CONFIRMATION_REQUIRED", 403,
                 $"dangerous statement requires confirm=true ({verdict.Reason})");
+        }
 
         var maxRows = Math.Clamp(r.MaxRows ?? conn.MaxRows, 1, 10_000);
         var timeout = Math.Clamp(r.TimeoutSeconds ?? conn.TimeoutSeconds, 1, 300);

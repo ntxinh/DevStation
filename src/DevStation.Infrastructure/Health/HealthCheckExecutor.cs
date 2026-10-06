@@ -110,11 +110,13 @@ public sealed class HealthCheckExecutor(IServiceProvider services) : IHealthChec
         var secrets = scope.ServiceProvider.GetService<ISecretStore>();
         if (db is null || secrets is null)
             return (HealthStatus.Unknown, "database probe deps not registered");
-
-        var conn = await db.DatabaseConnections
-            .FirstOrDefaultAsync(x => x.Name == target || x.Id.ToString() == target, ct);
+        var conn = Guid.TryParse(target, out var gid)
+            ? await db.DatabaseConnections
+                .FirstOrDefaultAsync(x => x.Id == gid, ct)
+            : await db.DatabaseConnections
+                .FirstOrDefaultAsync(x => x.Name == target, ct);
         if (conn is null)
-            return (HealthStatus.Unknown, $"no database connection '{target}'");
+            return (HealthStatus.Unhealthy, $"no database connection '{target}'");
         try
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);

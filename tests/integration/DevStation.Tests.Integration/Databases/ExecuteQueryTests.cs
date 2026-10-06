@@ -126,6 +126,70 @@ public class ExecuteQueryTests : IAsyncLifetime
             ErrCode((await Exec(id, "DROP TABLE ds_it_t", confirm: true)).env));
     }
 
+
+    [Fact]
+    public async Task Select_into_is_write_and_blocked_on_readonly()
+    {
+        var id = await CreateConn("it-into-ro", readOnly: true);
+        var (st, env) = await Exec(id, "SELECT * INTO ds_it_into FROM ds_it_t");
+        Assert.Equal(HttpStatusCode.Forbidden, st);
+        Assert.Equal("SQL_READONLY", ErrCode(env));
+    }
+
+    [Fact]
+    public async Task Rejected_query_writes_audit_row()
+    {
+        var id = await CreateConn("it-audit-ro", readOnly: true);
+        var (st, _) = await Exec(id,
+            "INSERT INTO ds_it_t (name) VALUES ('rejected')");
+        Assert.Equal(HttpStatusCode.Forbidden, st);
+
+        await using var db = NewDb();
+        var ev = await db.AuditEvents
+            .Where(a => a.Action == "db.query.rejected"
+                        && a.ResourceId == id.ToString())
+            .SingleAsync();
+        Assert.Equal("blocked:SQL_READONLY", ev.Result);
+        Assert.Contains("INSERT INTO ds_it_t", ev.Metadata);
+        // rejected attempts don't reach the query history
+        Assert.False(await db.QueryHistory
+            .AnyAsync(h => h.ConnectionId == id && h.Sql.Contains("rejected")));
+    }
+
+    [Fact]
+    public async Task Health_check_database_kind_probes_connection()
+    {
+        var id = await CreateConn("it-health", readOnly: true);
+        var created = await _client.PostAsJsonAsync("/api/health", new
+        {
+            name = "db probe", kind = "database", target = "it-health",
+            intervalSeconds = 60, timeoutSeconds = 10,
+        });
+        var checkId = JsonSerializer.Deserialize<JsonElement>(
+                await created.Content.ReadAsStringAsync())
+            .GetProperty("data").GetProperty("id").GetGuid();
+
+        var run = await _client.PostAsync($"/api/health/{checkId}/check", null);
+        var env = JsonSerializer.Deserialize<JsonElement>(
+            await run.Content.ReadAsStringAsync());
+        Assert.Equal("healthy",
+            env.GetProperty("data").GetProperty("status").GetString());
+
+        // non-existent target name → unhealthy, not a 500
+        var bad = await _client.PostAsJsonAsync("/api/health", new
+        {
+            name = "db probe missing", kind = "database",
+            target = "no-such-conn", intervalSeconds = 60,
+        });
+        var badId = JsonSerializer.Deserialize<JsonElement>(
+                await bad.Content.ReadAsStringAsync())
+            .GetProperty("data").GetProperty("id").GetGuid();
+        var run2 = await _client.PostAsync($"/api/health/{badId}/check", null);
+        var env2 = JsonSerializer.Deserialize<JsonElement>(
+            await run2.Content.ReadAsStringAsync());
+        Assert.Equal("unhealthy",
+            env2.GetProperty("data").GetProperty("status").GetString());
+    }
     [Fact]
     public async Task Dangerous_needs_confirm_then_runs()
     {

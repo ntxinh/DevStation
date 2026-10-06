@@ -38,9 +38,10 @@ public static class SqlGuard
     ];
 
     // Reserved words in every supported dialect — cannot be bare identifiers,
-    // so they may be scanned anywhere without false positives.
+    // so they may be scanned anywhere without false positives. `into` is here
+    // because SELECT…INTO creates a table (pg + mssql) — it must not read as Read.
     private static readonly HashSet<string> AnywhereWrite =
-        ["insert", "update", "delete", "merge", "call", "execute"];
+        ["insert", "update", "delete", "merge", "call", "execute", "into"];
     private static readonly HashSet<string> AnywhereDangerous =
         ["do", "drop", "truncate", "alter", "create", "grant", "revoke"];
 
