@@ -3,10 +3,12 @@ using DevStation.Domain.Enums;
 using DevStation.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using DevStation.Application.Shared.Persistence;
 
 namespace DevStation.Infrastructure.Persistence;
 
-public class DevStationDbContext(DbContextOptions<DevStationDbContext> options) : DbContext(options)
+public class DevStationDbContext(DbContextOptions<DevStationDbContext> options)
+    : DbContext(options), IDevStationDb
 {
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<AppEnvironment> Environments => Set<AppEnvironment>();

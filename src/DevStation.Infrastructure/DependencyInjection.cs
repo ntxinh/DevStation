@@ -1,3 +1,8 @@
+using DevStation.Application.Shared.Auditing;
+using DevStation.Application.Shared.Persistence;
+using DevStation.Application.Shared.Providers;
+using DevStation.Infrastructure.Auditing;
+using DevStation.Infrastructure.Git;
 using DevStation.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -13,6 +18,9 @@ public static class DependencyInjection
         services.AddDbContext<DevStationDbContext>(o =>
             o.UseNpgsql(config.GetConnectionString("Default")));
         services.AddHostedService<MigrationHostedService>();
+        services.AddScoped<IDevStationDb>(sp => sp.GetRequiredService<DevStationDbContext>());
+        services.AddScoped<IAuditWriter, AuditWriter>();
+        services.AddSingleton<IGitProvider, LibGit2SharpGitProvider>();
         return services;
     }
 }

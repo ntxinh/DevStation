@@ -1,6 +1,10 @@
+using DevStation.Application.Modules.Dashboard.GetDashboardSummary;
+using DevStation.Application.Modules.Projects;
 using DevStation.Infrastructure;
 
+using DevStation.Web.Modules.Dashboard;
 using DevStation.Web.Modules.Health;
+using DevStation.Web.Modules.Projects;
 using DevStation.Web.Shared.Auth;
 using DevStation.Web.Shared.Middleware;
 using DevStation.Web.Shared.Modules;
@@ -21,7 +25,7 @@ b.Services.AddAuthorization(o =>
 });
 b.Services.AddSingleton<IAuthorizationHandler, TierHandler>();
 b.Services.AddInfrastructure(b.Configuration);
-// module DI added by later tasks via extension methods
+b.Services.AddProjectsModule().AddDashboardModule();
 
 var app = b.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
@@ -34,6 +38,8 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok", uptime = Environment
 
 var api = app.MapModuleEndpoints();
 HealthModule.Map(api); // placeholder returning module status list — replaced by real module in Phase 2
+ProjectsEndpoints.Map(api);
+DashboardEndpoints.Map(api);
 
 app.Run();
 
