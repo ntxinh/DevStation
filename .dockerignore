@@ -1,0 +1,28 @@
+# build output
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+
+# next.js
+apps/web/.next/
+apps/web/playwright-report/
+apps/web/test-results/
+
+# vcs / ide / local env
+.git/
+.gitignore
+.env
+.env.*
+!.env.example
+.idea/
+.vs/
+
+# misc
+coverage/
+TestResults/
+*.tsbuildinfo
+*.user
+.superpowers/
+.worktrees/
+docs/

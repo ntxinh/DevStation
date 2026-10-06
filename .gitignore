@@ -1,1 +1,23 @@
+# dotnet
+bin/
+obj/
+*.user
+TestResults/
+
+# node
+node_modules/
+.next/
+playwright-report/
+
+# env / ide
+.env
+.env.local
+.idea/
+.vs/
+
+# e2e
+test-results/
+
+# worktrees
 .worktrees/
+*.tsbuildinfo
