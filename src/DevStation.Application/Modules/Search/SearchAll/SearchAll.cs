@@ -91,7 +91,6 @@ public sealed class SearchAllHandler(IDevStationDb db,
             .Select(i => new SearchHit(i.Id.ToString(), i.Name, i.Type,
                 i.Status.ToString().ToLower()))
             .ToListAsync(ct);
-
         try
         {
             groups.Containers = (await containers.ListAsync(ct))
@@ -101,7 +100,7 @@ public sealed class SearchAllHandler(IDevStationDb db,
                 .Select(c => new SearchHit(c.Id, c.Name, c.Image, c.State))
                 .ToList();
         }
-        catch { /* runtime unavailable — containers group stays empty */ }
+        catch (Exception) when (!ct.IsCancellationRequested) { /* runtime unavailable — containers group stays empty */ }
 
         return groups;
     }

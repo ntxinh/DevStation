@@ -23,9 +23,11 @@ public sealed class LogBuffer : ILogSink, ILogQuery
     private readonly ConcurrentQueue<LogEntry> _entries = new();
     private readonly Channel<LogEntry> _broadcast =
         Channel.CreateUnbounded<LogEntry>();
-    private volatile int _count;
+    // ConcurrentQueue.Count snapshots segment locks — O(segments) per call,
+    // too hot for Write; track the size ourselves
+    private int _count;
 
-    public int Count => _count;
+    public int Count => Volatile.Read(ref _count);
 
     public LogBuffer(IServiceProvider? services = null, int cap = DefaultCap)
     {
@@ -36,8 +38,9 @@ public sealed class LogBuffer : ILogSink, ILogQuery
     public void Write(LogEntry e)
     {
         _entries.Enqueue(e);
-        while (_entries.Count > _cap && _entries.TryDequeue(out _)) { }
-        _count = _entries.Count;
+        Interlocked.Increment(ref _count);
+        while (Volatile.Read(ref _count) > _cap && _entries.TryDequeue(out _))
+            Interlocked.Decrement(ref _count);
         _broadcast.Writer.TryWrite(e);
     }
 
