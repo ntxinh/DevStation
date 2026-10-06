@@ -1,9 +1,11 @@
+using DevStation.Application.Shared.Ai;
 using DevStation.Application.Shared.Auditing;
 using DevStation.Application.Shared.Logging;
 using DevStation.Application.Shared.Persistence;
 using DevStation.Application.Shared.Providers;
 using DevStation.Application.Shared.Notifications;
 using DevStation.Application.Shared.Secrets;
+using DevStation.Infrastructure.Ai;
 using DevStation.Infrastructure.Auditing;
 using DevStation.Infrastructure.Containers;
 using DevStation.Infrastructure.Databases;
@@ -55,6 +57,12 @@ public static class DependencyInjection
             Enum.TryParse<LogLevel>(config["Logging:Buffered:MinLevel"],
                 true, out var lvl) ? lvl : LogLevel.Information));
         services.AddHttpClient();
+        // AI provider seam — Ai:Provider = ollama|openai|none (default none).
+        // CompleteAsync calls are bounded by AiLimits.Timeout inside providers.
+        services.AddHttpClient<OllamaProvider>(c => c.Timeout = AiLimits.Timeout);
+        services.AddHttpClient<OpenAiProvider>(c => c.Timeout = AiLimits.Timeout);
+        services.AddSingleton<IAiProvider>(sp =>
+            AiProviderSelector.Resolve(sp, config));
 
         // Deployments:Provider = mock|github (default mock)
         var mockOptions = new MockDeploymentOptions();

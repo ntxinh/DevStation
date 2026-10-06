@@ -1,8 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import * as signalR from "@microsoft/signalr";
 import { useEffect, useRef, useState } from "react";
+import { AiSuggestionPanel } from "@/components/AiSuggestionPanel";
+import { explainError } from "@/features/ai/api";
 import { apiFetch, TOKEN_KEY } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 
@@ -36,6 +38,7 @@ export default function LogsPage() {
   const [q, setQ] = useState("");
   const [paused, setPaused] = useState(false);
   const [live, setLive] = useState<LogLine[]>([]);
+  const explain = useMutation({ mutationFn: explainError });
   const liveRef = useRef<LogLine[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
@@ -174,19 +177,35 @@ export default function LogsPage() {
       {error ? (
         <div className="text-xs text-err">{String(error)}</div>
       ) : null}
+      {explain.isPending || explain.data || explain.error ? (
+        <AiSuggestionPanel
+          title="Explain error"
+          loading={explain.isPending}
+          error={explain.error ? String(explain.error) : null}
+          result={explain.data ?? null}
+        />
+      ) : null}
       <div className="min-h-0 flex-1 overflow-auto rounded border border-border bg-bg p-2 font-mono text-[11px] leading-relaxed">
         {isLoading ? <div className="text-muted">Loading…</div> : null}
         {lines.length === 0 && !isLoading ? (
           <div className="text-muted">No log lines.</div>
         ) : null}
         {lines.map((l, i) => (
-          <div key={`${l.ts}-${i}`} className="whitespace-pre-wrap">
+          <div key={`${l.ts}-${i}`} className="group whitespace-pre-wrap">
             <span className="text-muted">{formatDateTime(l.ts)} </span>
             <span className={LEVEL_CLASS[l.level] ?? "text-fg"}>
               {l.level.padEnd(5)}{" "}
             </span>
             <span className="text-accent">{l.source.padEnd(10)} </span>
             <span>{l.message}</span>
+            {(l.level === "error" || l.level === "fatal") ? (
+              <button
+                onClick={() => explain.mutate({ logText: l.message })}
+                className="ml-2 hidden text-accent hover:underline group-hover:inline"
+              >
+                explain
+              </button>
+            ) : null}
           </div>
         ))}
         <div ref={bottomRef} />

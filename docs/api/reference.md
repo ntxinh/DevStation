@@ -91,6 +91,13 @@ missing confirm → `400 CONFIRMATION_REQUIRED`.
 | `GET /api/integrations/github/repos` | read | requires configured GitHub token; upstream errors → `502 INTEGRATION_ERROR` |
 | `GET /api/integrations/github/{owner}/{repo}/pulls` | read | |
 | `GET /api/integrations/github/{owner}/{repo}/workflow-runs` | read | |
+| **AI assist** |||
+| `POST /api/ai/explain-error` | read | `{logText \| logId}` → `{cause, evidence[], investigation[], suggestedFix}`; `logId` = deployment id; `503 AI_UNAVAILABLE` when no provider |
+| `POST /api/ai/explain-sql` | read | `{sql, connectionId?}` → `{explanation}`; schema digest appended when connection given |
+| `POST /api/ai/generate-sql` | read | `{question, connectionId}` → `{sql, explanation}` — advisory only, never executed |
+| **MCP (HTTP tool surface, read-only)** |||
+| `GET /api/mcp/tools` | read | `{name, description, inputSchema}[]` — read-tier commands + explicit read tools; see `docs/api/mcp.md` |
+| `POST /api/mcp/tools/{name}/invoke` | read | `{args}` → handler payload in-process; `404 MCP_TOOL_UNKNOWN` for write/unknown tools |
 
 ## SignalR hubs
 

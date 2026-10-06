@@ -1,4 +1,6 @@
 using DevStation.Application.Modules.Containers;
+using DevStation.Application.Modules.Ai;
+using DevStation.Application.Modules.Mcp;
 using DevStation.Application.Modules.Dashboard.GetDashboardSummary;
 using DevStation.Application.Modules.Deployments;
 using DevStation.Application.Modules.Databases;
@@ -32,6 +34,8 @@ using DevStation.Web.Modules.Notifications;
 using DevStation.Web.Modules.Integrations;
 using DevStation.Web.Modules.Projects;
 using DevStation.Web.Modules.Services;
+using DevStation.Web.Modules.Ai;
+using DevStation.Web.Modules.Mcp;
 using DevStation.Web.Shared.Auth;
 using DevStation.Web.Shared.Middleware;
 using DevStation.Web.Shared.Modules;
@@ -90,7 +94,9 @@ b.Services.AddProjectsModule().AddDashboardModule()
     .AddCommandsModule()
     .AddNotificationsModule()
     .AddIntegrationsModule()
-    .AddLogsModule();
+    .AddLogsModule()
+    .AddAiModule()
+    .AddMcpModule();
 
 var app = b.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
@@ -119,6 +125,8 @@ SearchEndpoints.Map(api);
 CommandsEndpoints.Map(api);
 NotificationsEndpoints.Map(api);
 IntegrationsEndpoints.Map(api);
+AiEndpoints.Map(api);
+McpEndpoints.Map(api);
 app.MapHub<HealthHub>("/hubs/health").RequireAuthorization("Read");
 app.MapHub<JobsHub>("/hubs/jobs").RequireAuthorization("Read");
 app.MapHub<DeploymentsHub>("/hubs/deployments").RequireAuthorization("Read");

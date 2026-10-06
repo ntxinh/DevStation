@@ -11,12 +11,15 @@ import type { Deployment } from "@/features/deployments/types";
 import { useDeploymentUpdates } from "@/features/deployments/useDeploymentUpdates";
 import { apiFetch } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { AiSuggestionPanel } from "@/components/AiSuggestionPanel";
+import { explainError } from "@/features/ai/api";
 
 export default function DeploymentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   useDeploymentUpdates();
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const explain = useMutation({ mutationFn: explainError });
 
   const { data, error, isLoading } = useQuery({
     queryKey: ["deployments", id],
@@ -54,7 +57,28 @@ export default function DeploymentDetailPage() {
             Cancel
           </button>
         ) : null}
+        {data?.status === "failed" ? (
+          <button
+            onClick={() => explain.mutate({
+              logId: id,
+              logText: data.logs.join("\n") || undefined,
+            })}
+            disabled={explain.isPending}
+            className="rounded border border-accent px-3 py-1.5 text-xs text-accent hover:bg-accent/10 disabled:opacity-40"
+          >
+            Explain failure
+          </button>
+        ) : null}
       </div>
+
+      {explain.isPending || explain.data || explain.error ? (
+        <AiSuggestionPanel
+          title="Explain failure"
+          loading={explain.isPending}
+          error={explain.error ? String(explain.error) : null}
+          result={explain.data ?? null}
+        />
+      ) : null}
 
       {isLoading ? <div className="text-xs text-muted">Loading…</div> : null}
       {error ? <ErrorState error={error} /> : null}

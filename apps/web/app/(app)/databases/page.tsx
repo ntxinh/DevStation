@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { AiSuggestionPanel } from "@/components/AiSuggestionPanel";
+import { explainSql, generateSql } from "@/features/ai/api";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { apiFetch, ApiError } from "@/lib/api";
@@ -41,6 +43,9 @@ export default function DatabasesPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editing, setEditing] = useState<DbConnection | "new" | null>(null);
   const [sideTab, setSideTab] = useState<"history" | "saved">("history");
+  const [question, setQuestion] = useState("");
+  const aiExplain = useMutation({ mutationFn: explainSql });
+  const aiGenerate = useMutation({ mutationFn: generateSql });
   const abort = useRef<AbortController | null>(null);
 
   const conn = conns.data?.find((c) => c.id === connId) ?? null;
@@ -187,7 +192,53 @@ export default function DatabasesPage() {
                     read-only connection
                   </span>
                 ) : null}
+                <button
+                  onClick={() => aiExplain.mutate(
+                    { sql, connectionId: conn.id })}
+                  disabled={aiExplain.isPending || !sql.trim()}
+                  className="rounded border border-border px-3 py-1.5 text-xs text-muted hover:text-fg disabled:opacity-40"
+                >
+                  Explain SQL
+                </button>
+                <input
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  placeholder="Ask for a query…"
+                  aria-label="Ask for a query"
+                  className="w-44 rounded border border-border bg-bg px-2 py-1.5 text-xs outline-none focus:border-accent"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && question.trim())
+                      aiGenerate.mutate(
+                        { question, connectionId: conn.id });
+                  }}
+                />
+                <button
+                  onClick={() => aiGenerate.mutate(
+                    { question, connectionId: conn.id })}
+                  disabled={aiGenerate.isPending || !question.trim()}
+                  className="rounded border border-border px-3 py-1.5 text-xs text-muted hover:text-fg disabled:opacity-40"
+                >
+                  Ask
+                </button>
               </div>
+              {aiExplain.isPending || aiExplain.data || aiExplain.error ? (
+                <AiSuggestionPanel
+                  title="Explain SQL"
+                  loading={aiExplain.isPending}
+                  error={aiExplain.error ? String(aiExplain.error) : null}
+                  text={aiExplain.data?.explanation ?? null}
+                />
+              ) : null}
+              {aiGenerate.isPending || aiGenerate.data || aiGenerate.error ? (
+                <AiSuggestionPanel
+                  title="Generated SQL"
+                  loading={aiGenerate.isPending}
+                  error={aiGenerate.error ? String(aiGenerate.error) : null}
+                  text={aiGenerate.data?.explanation ?? null}
+                  sql={aiGenerate.data?.sql ?? null}
+                  onApplySql={setSql}
+                />
+              ) : null}
               {runErr ? (
                 <div className="rounded border border-err/50 bg-err/10 px-2 py-1.5 text-xs">
                   <span className="font-mono font-semibold text-err">
