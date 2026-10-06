@@ -62,7 +62,14 @@ public class ProjectsEndpointTests : IAsyncLifetime
         var one = await _client.GetFromJsonAsync<ApiEnvelope<ProjectDto>>($"/api/projects/{id}");
         Assert.Equal("demo", one!.Data!.Name);
 
-        Assert.Equal(HttpStatusCode.OK, (await _client.DeleteAsync($"/api/projects/{id}")).StatusCode);
+        // destructive op requires ?confirm=true
+        var noConfirm = await _client.DeleteAsync($"/api/projects/{id}");
+        Assert.Equal(HttpStatusCode.BadRequest, noConfirm.StatusCode);
+        var envErr = await noConfirm.Content.ReadFromJsonAsync<ApiEnvelope<object>>();
+        Assert.Equal("CONFIRMATION_REQUIRED", envErr!.Error!.Code);
+
+        Assert.Equal(HttpStatusCode.OK,
+            (await _client.DeleteAsync($"/api/projects/{id}?confirm=true")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync($"/api/projects/{id}")).StatusCode);
     }
 

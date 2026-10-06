@@ -31,7 +31,9 @@ public static class CreateProjectValidator
     /// <summary>Field rules shared with update (call with the merged entity values).</summary>
     public static void Check(List<string> errors, string? name, string? repoUrl, string? localPath)
     {
-        if (name is { Length: > 200 } or "")
+        // validate the stored value — a whitespace name must not trim to "" past validation
+        var trimmed = name?.Trim();
+        if (trimmed is null or "" or { Length: > 200 })
             errors.Add("name must be 1-200 characters");
         if (repoUrl is { Length: > 0 } u &&
             !(Uri.TryCreate(u, UriKind.Absolute, out var uri) &&

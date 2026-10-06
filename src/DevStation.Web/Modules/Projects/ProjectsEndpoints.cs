@@ -8,6 +8,7 @@ using DevStation.Application.Modules.Projects.ListProjects;
 using DevStation.Application.Modules.Projects.UpdateProject;
 using DevStation.Application.Shared.Results;
 
+using DevStation.Web.Shared.Modules;
 namespace DevStation.Web.Modules.Projects;
 
 public static class ProjectsEndpoints
@@ -26,9 +27,10 @@ public static class ProjectsEndpoints
                 UpdateProjectHandler h, ClaimsPrincipal u, CancellationToken ct)
             => ApiResult.Ok(await h.Handle(id, r, u, ct)))
             .RequireAuthorization("Execute");
-        api.MapDelete("/projects/{id:guid}", async (Guid id, DeleteProjectHandler h,
-                ClaimsPrincipal u, CancellationToken ct)
-            => { await h.Handle(id, u, ct); return ApiResult.Ok(new { deleted = true }); })
+        api.MapDelete("/projects/{id:guid}", async (Guid id, bool? confirm,
+                DeleteProjectHandler h, ClaimsPrincipal u, CancellationToken ct)
+            => { ConfirmGate.Require(confirm == true);
+                 await h.Handle(id, u, ct); return ApiResult.Ok(new { deleted = true }); })
             .RequireAuthorization("Execute");
         api.MapGet("/projects/{id:guid}/git", async (Guid id, GetGitStatusHandler h, CancellationToken ct)
             => ApiResult.Ok(await h.Handle(id, ct)));

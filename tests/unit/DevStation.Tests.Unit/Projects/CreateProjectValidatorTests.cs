@@ -33,6 +33,16 @@ public class CreateProjectValidatorTests
         Assert.NotEmpty(CreateProjectValidator.Validate(r));
     }
 
+    [Theory]
+    [InlineData(" ")]
+    [InlineData("   \t  ")]
+    public void Check_rejects_whitespace_only_name(string name)
+    {
+        // update path merges then calls Check — " " must not trim to "" past validation
+        var errors = new List<string>();
+        CreateProjectValidator.Check(errors, name, null, null);
+        Assert.NotEmpty(errors);
+    }
     [Fact]
     public void Name_at_200_passes()
         => Assert.Empty(CreateProjectValidator.Validate(Valid() with { Name = new string('x', 200) }));
