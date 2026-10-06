@@ -41,6 +41,7 @@ b.Services.AddAuthorization(o =>
 b.Services.AddSingleton<IAuthorizationHandler, TierHandler>();
 b.Services.AddSignalR();
 b.Services.AddSingleton<IHealthCheckNotifier, SignalRHealthNotifier>();
+b.Services.AddSingleton<IDeploymentNotifier, SignalRDeploymentNotifier>();
 b.Services.AddSingleton<IJobNotifier, SignalRJobNotifier>();
 b.Services.AddInfrastructure(b.Configuration);
 b.Services.AddProjectsModule().AddDashboardModule()

@@ -30,7 +30,8 @@ public sealed class DevTokenAuthenticationHandler(
         // main token is admin; extra tokens get their configured tier
         // (DevStation:TokenTiers:<token> = read|execute|deploy|admin)
         var tier = token == expected ? "admin"
-            : config[$"DevStation:TokenTiers:{token}"] ?? "admin";
+            : config[$"DevStation:TokenTiers:{token}"] is { Length: > 0 } t
+                ? t : "read"; // fail-safe: listed-but-empty tier ≠ admin
         var identity = new ClaimsIdentity(
             [new Claim(ClaimTypes.Name, "dev"), new Claim("tier", tier)],
             Scheme.Name);

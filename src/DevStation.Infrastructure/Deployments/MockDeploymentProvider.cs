@@ -49,13 +49,14 @@ public sealed class MockDeploymentProvider : IDeploymentProvider
     }
 
     public async Task<Guid> StartAsync(Guid? projectId, Guid? environmentId,
-        string? commit, CancellationToken ct)
+        string? commit, string? triggeredBy, CancellationToken ct)
     {
         var run = new Run(
             new Deployment
             {
                 ProjectId = projectId, EnvironmentId = environmentId,
                 Commit = commit, Status = DeploymentStatus.Queued,
+                TriggeredBy = triggeredBy,
             },
             [], new CancellationTokenSource());
         _runs[run.Entity.Id] = run;

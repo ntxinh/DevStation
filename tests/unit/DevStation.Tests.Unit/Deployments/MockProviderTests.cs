@@ -47,7 +47,7 @@ public class MockProviderTests
             .UseInMemoryDatabase("mockdep1").Options);
         var p = NewProvider(sink, db, "mockdep1");
 
-        var id = await p.StartAsync(null, Guid.NewGuid(), "abc123", CancellationToken.None);
+        var id = await p.StartAsync(null, Guid.NewGuid(), "abc123", "dev-user", CancellationToken.None);
 
         var status = await p.GetStatusAsync(id, CancellationToken.None);
         Assert.Equal(DeploymentStatus.Queued, status.Status);
@@ -64,6 +64,7 @@ public class MockProviderTests
         Assert.NotNull(row);
         Assert.Equal(DeploymentStatus.Succeeded, row!.Status);
         Assert.NotNull(row.FinishedAt);
+        Assert.Equal("dev-user", row.TriggeredBy); // survives running transition persist
 
         // log sink captured lines tagged with deploymentId
         var entries = sink.ForDeployment(id);
@@ -79,7 +80,7 @@ public class MockProviderTests
         var p = new MockDeploymentProvider(sp.GetRequiredService<IServiceScopeFactory>(),
             sink, options: new MockDeploymentOptions { QueueSeconds = 0, RunSeconds = 0, FailRate = 1 });
 
-        var id = await p.StartAsync(null, null, null, CancellationToken.None);
+        var id = await p.StartAsync(null, null, null, null, CancellationToken.None);
         var final = await WaitFor(p, id, s => s == DeploymentStatus.Failed);
         Assert.Equal(DeploymentStatus.Failed, final.Status);
     }
@@ -93,7 +94,7 @@ public class MockProviderTests
             sink,
             options: new MockDeploymentOptions { QueueSeconds = 60, RunSeconds = 60 });
 
-        var id = await p.StartAsync(null, null, null, CancellationToken.None);
+        var id = await p.StartAsync(null, null, null, null, CancellationToken.None);
         await p.CancelAsync(id, CancellationToken.None);
 
         var s = await p.GetStatusAsync(id, CancellationToken.None);
@@ -109,7 +110,7 @@ public class MockProviderTests
         var p = new MockDeploymentProvider(sp.GetRequiredService<IServiceScopeFactory>(),
             sink, options: new MockDeploymentOptions { QueueSeconds = 0, RunSeconds = 0 });
 
-        var id = await p.StartAsync(null, null, null, CancellationToken.None);
+        var id = await p.StartAsync(null, null, null, null, CancellationToken.None);
         await WaitFor(p, id, s => s == DeploymentStatus.Succeeded);
 
         var ex = await Assert.ThrowsAsync<AppException>(

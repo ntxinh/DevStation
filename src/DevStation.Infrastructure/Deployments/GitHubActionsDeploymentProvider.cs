@@ -51,12 +51,13 @@ public sealed class GitHubActionsDeploymentProvider : IDeploymentProvider
     }
 
     public async Task<Guid> StartAsync(Guid? projectId, Guid? environmentId,
-        string? commit, CancellationToken ct)
+        string? commit, string? triggeredBy, CancellationToken ct)
     {
         var d = new Deployment
         {
             ProjectId = projectId, EnvironmentId = environmentId,
             Commit = commit ?? _o.Ref, Status = DeploymentStatus.Queued,
+            TriggeredBy = triggeredBy,
         };
         _store.LogLine(d, "info", $"dispatching {_o.WorkflowId} on {_o.Owner}/{_o.Repo}");
         await _store.Persist(d, ct);

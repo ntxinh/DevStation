@@ -4,6 +4,7 @@ const DOT: Record<string, string> = {
   running: "bg-ok",
   queued: "bg-warn",
   warn: "bg-warn",
+  degraded: "bg-warn",
   paused: "bg-warn",
   unhealthy: "bg-err",
   err: "bg-err",

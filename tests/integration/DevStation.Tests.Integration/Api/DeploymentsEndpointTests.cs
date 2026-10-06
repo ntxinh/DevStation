@@ -6,6 +6,7 @@ using DevStation.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using DevStation.Application.Shared.Providers;
 using Testcontainers.PostgreSql;
 
 namespace DevStation.Tests.Integration.Api;
@@ -27,6 +28,8 @@ public class DeploymentsEndpointTests : IAsyncLifetime
                 ["DevStation:Token"] = "test",
                 // second token at Execute tier for prod-vs-dev policy coverage
                 ["DevStation:TokenTiers:exec-token"] = "execute",
+                // listed-but-empty tier must fail-safe to read, not admin
+                ["DevStation:TokenTiers:empty-tier-token"] = "",
                 // keep deployments queued ~5s so the cancel test has a window;
                 // progression test waits up to 10s
                 ["Deployments:Mock:QueueSeconds"] = "5",
@@ -177,5 +180,24 @@ public class DeploymentsEndpointTests : IAsyncLifetime
         var again = await _client.PostAsync(
             $"/api/deployments/{created.Data.Id}/cancel", null);
         Assert.Equal(HttpStatusCode.Conflict, again.StatusCode);
+    }
+
+    [Fact]
+    public void Deployment_notifier_is_registered_for_hub_broadcasts()
+        => Assert.NotNull(_factory.Services.GetService<IDeploymentNotifier>());
+
+    [Fact]
+    public async Task Empty_tier_token_fails_safe_to_read()
+    {
+        using var c = _factory.CreateClient();
+        c.DefaultRequestHeaders.Add("Authorization", "Bearer empty-tier-token");
+
+        // read-tier works
+        var list = await c.GetAsync("/api/deployments");
+        Assert.Equal(HttpStatusCode.OK, list.StatusCode);
+
+        // but can't execute — cancel needs Execute
+        var cancel = await c.PostAsync($"/api/deployments/{Guid.NewGuid()}/cancel", null);
+        Assert.Equal(HttpStatusCode.Forbidden, cancel.StatusCode);
     }
 }

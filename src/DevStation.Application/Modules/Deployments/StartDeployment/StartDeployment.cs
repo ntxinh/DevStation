@@ -30,11 +30,8 @@ public sealed class StartDeploymentHandler(IDevStationDb db,
             !await db.Projects.AnyAsync(p => p.Id == pid, ct))
             throw new AppException("NOT_FOUND", 404, "Project not found");
 
-        var id = await provider.StartAsync(r.ProjectId, environmentId, r.Commit, ct);
-        // provider owns the row's lifecycle; stamp who pulled the trigger
-        await db.Deployments.Where(d => d.Id == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(d => d.TriggeredBy,
-                user.Identity?.Name), ct);
+        var id = await provider.StartAsync(r.ProjectId, environmentId, r.Commit,
+            user.Identity?.Name, ct);
         await audit.Record("deployment.start", "deployment", id,
             user.Identity?.Name, "ok",
             new { r.ProjectId, environmentId, r.Commit }, ct);

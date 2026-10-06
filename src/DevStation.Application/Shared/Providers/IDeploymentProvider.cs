@@ -18,7 +18,7 @@ public interface IDeploymentProvider
 {
     /// <summary>Creates the deployment row (queued) and starts progression.</summary>
     Task<Guid> StartAsync(Guid? projectId, Guid? environmentId,
-        string? commit, CancellationToken ct);
+        string? commit, string? triggeredBy, CancellationToken ct);
     /// <summary>Transitions queued/running → cancelled; 404 unknown, 409 finished.</summary>
     Task CancelAsync(Guid id, CancellationToken ct);
     Task<DeploymentStatusInfo> GetStatusAsync(Guid id, CancellationToken ct);
