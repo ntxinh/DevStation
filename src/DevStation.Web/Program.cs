@@ -1,15 +1,19 @@
+using DevStation.Application.Modules.Containers;
 using DevStation.Application.Modules.Dashboard.GetDashboardSummary;
 using DevStation.Application.Modules.Environments;
 using DevStation.Application.Modules.Health;
 using DevStation.Application.Modules.Projects;
+using DevStation.Application.Modules.Services;
 using DevStation.Application.Shared.Providers;
 using DevStation.Infrastructure;
 
 using DevStation.Web.Hubs;
+using DevStation.Web.Modules.Containers;
 using DevStation.Web.Modules.Dashboard;
 using DevStation.Web.Modules.Environments;
 using DevStation.Web.Modules.Health;
 using DevStation.Web.Modules.Projects;
+using DevStation.Web.Modules.Services;
 using DevStation.Web.Shared.Auth;
 using DevStation.Web.Shared.Middleware;
 using DevStation.Web.Shared.Modules;
@@ -33,7 +37,8 @@ b.Services.AddSignalR();
 b.Services.AddSingleton<IHealthCheckNotifier, SignalRHealthNotifier>();
 b.Services.AddInfrastructure(b.Configuration);
 b.Services.AddProjectsModule().AddDashboardModule()
-    .AddEnvironmentsModule().AddHealthModule();
+    .AddEnvironmentsModule().AddHealthModule()
+    .AddServicesModule().AddContainersModule();
 
 var app = b.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
@@ -49,6 +54,8 @@ ProjectsEndpoints.Map(api);
 EnvironmentsEndpoints.Map(api);
 HealthEndpoints.Map(api);
 DashboardEndpoints.Map(api);
+ServicesEndpoints.Map(api);
+ContainersEndpoints.Map(api);
 app.MapHub<HealthHub>("/hubs/health").RequireAuthorization("Read");
 
 app.Run();

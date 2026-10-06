@@ -2,6 +2,7 @@ using DevStation.Application.Shared.Auditing;
 using DevStation.Application.Shared.Persistence;
 using DevStation.Application.Shared.Providers;
 using DevStation.Infrastructure.Auditing;
+using DevStation.Infrastructure.Containers;
 using DevStation.Infrastructure.Git;
 using DevStation.Infrastructure.Health;
 using DevStation.Infrastructure.Persistence;
@@ -24,6 +25,9 @@ public static class DependencyInjection
         services.AddSingleton<IGitProvider, LibGit2SharpGitProvider>();
         services.AddSingleton<IHealthCheckExecutor, HealthCheckExecutor>();
         services.AddHostedService<HealthCheckPoller>();
+        services.AddSingleton<ContainerCliRunner>();
+        services.AddSingleton<IContainerProvider>(sp =>
+            ContainerProviderDetector.Detect(sp.GetRequiredService<ContainerCliRunner>()));
         return services;
     }
 }

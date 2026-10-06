@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Net.Sockets;
 using DevStation.Application.Shared.Providers;
+using DevStation.Application.Shared.Results;
 using DevStation.Domain.Enums;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DevStation.Infrastructure.Health;
 
@@ -19,7 +21,7 @@ public sealed class HealthCheckExecutor(IServiceProvider services) : IHealthChec
             "http" => await CheckHttp(check.Target, timeout, ct),
             "tcp" => await CheckTcp(check.Target, timeout, ct),
             "database" => ProviderCheck("IDatabaseProvider", check.Target),
-            "container" => ProviderCheck("IContainerProvider", check.Target),
+            "container" => await CheckContainer(check.Target, ct),
             // ponytail: custom checks need user-supplied probe code — sandbox/scripting not built
             _ => (HealthStatus.Unknown, "custom checks not evaluated"),
         };
@@ -77,8 +79,24 @@ public sealed class HealthCheckExecutor(IServiceProvider services) : IHealthChec
         }
     }
 
-    // ponytail: IDatabaseProvider/IContainerProvider land in Tasks 7/8 — resolved by name so
-    // this code compiles before they exist. Registered but unprobed → Unknown either way.
+    private async Task<(HealthStatus, string?)> CheckContainer(
+        string target, CancellationToken ct)
+    {
+        var provider = services.GetService<IContainerProvider>();
+        if (provider is null)
+            return (HealthStatus.Unknown, "no IContainerProvider registered");
+        try
+        {
+            var c = await provider.InspectAsync(target, ct);
+            return c.State is "running"
+                ? (HealthStatus.Healthy, null)
+                : (HealthStatus.Unhealthy, $"container {c.State}");
+        }
+        catch (AppException e) { return (HealthStatus.Unknown, e.Message); }
+    }
+
+    // ponytail: IDatabaseProvider lands in Task 8 — resolved by name so this code
+    // compiles before it exists. Registered but unprobed → Unknown either way.
     private (HealthStatus, string?) ProviderCheck(string providerName, string target)
     {
         var t = Type.GetType(

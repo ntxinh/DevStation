@@ -1,10 +1,13 @@
 const DOT: Record<string, string> = {
   healthy: "bg-ok",
   ok: "bg-ok",
+  running: "bg-ok",
   degraded: "bg-warn",
   warn: "bg-warn",
+  paused: "bg-warn",
   unhealthy: "bg-err",
   err: "bg-err",
+  dead: "bg-err",
   unknown: "bg-muted",
 };
 

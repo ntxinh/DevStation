@@ -1,4 +1,6 @@
 using DevStation.Application.Shared.Persistence;
+using DevStation.Application.Shared.Providers;
+using DevStation.Application.Shared.Results;
 using DevStation.Domain.Entities;
 using DevStation.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +11,8 @@ namespace DevStation.Application.Modules.Dashboard.GetDashboardSummary;
 public sealed record DashboardSummary(int Projects, int Services, int Containers,
     string EnvironmentHealth, List<AuditEvent> RecentActivity);
 
-public sealed class GetDashboardSummaryHandler(IDevStationDb db)
+public sealed class GetDashboardSummaryHandler(IDevStationDb db,
+    IContainerProvider containers)
 {
     public async Task<DashboardSummary> Handle(CancellationToken ct)
     {
@@ -31,8 +34,11 @@ public sealed class GetDashboardSummaryHandler(IDevStationDb db)
         var recent = await db.AuditEvents
             .OrderByDescending(a => a.Timestamp).Take(10).ToListAsync(ct);
 
-        // ponytail: containers count 0 until IContainerProvider lands in Task 7
-        return new DashboardSummary(projects, services, 0, health, recent);
+        // runtime absent/erroring → 0; never fail the dashboard over containers
+        int containerCount;
+        try { containerCount = (await containers.ListAsync(ct)).Count; }
+        catch (AppException) { containerCount = 0; }
+        return new DashboardSummary(projects, services, containerCount, health, recent);
     }
 }
 
