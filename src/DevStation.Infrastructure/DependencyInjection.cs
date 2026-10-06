@@ -1,18 +1,22 @@
 using DevStation.Application.Shared.Auditing;
+using DevStation.Application.Shared.Logging;
 using DevStation.Application.Shared.Persistence;
 using DevStation.Application.Shared.Providers;
 using DevStation.Application.Shared.Secrets;
 using DevStation.Infrastructure.Auditing;
 using DevStation.Infrastructure.Containers;
 using DevStation.Infrastructure.Databases;
+using DevStation.Infrastructure.Deployments;
 using DevStation.Infrastructure.Git;
 using DevStation.Infrastructure.Health;
 using DevStation.Infrastructure.Jobs;
+using DevStation.Infrastructure.Logging;
 using DevStation.Infrastructure.Persistence;
 using DevStation.Infrastructure.Secrets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Quartz;
 
 namespace DevStation.Infrastructure;
@@ -36,6 +40,42 @@ public static class DependencyInjection
         services.AddSingleton<IDatabaseProvider, PostgreSqlProvider>();
         services.AddSingleton<IDatabaseProvider, SqlServerProvider>();
         services.AddSingleton<ISecretStore, EnvSecretStore>();
+
+        var sink = new InMemoryLogSink();
+        services.AddSingleton(sink);
+        services.AddSingleton<ILogSink>(sink);
+        services.AddSingleton<ILogQuery>(sink);
+        services.AddHttpClient();
+
+        // Deployments:Provider = mock|github (default mock)
+        var mockOptions = new MockDeploymentOptions();
+        config.GetSection("Deployments:Mock").Bind(mockOptions);
+        services.AddSingleton(mockOptions);
+        services.AddSingleton<IDeploymentProvider>(sp =>
+        {
+            // github only when configured AND a token exists — else mock
+            var useGithub =
+                config["Deployments:Provider"]?.Equals("github",
+                    StringComparison.OrdinalIgnoreCase) == true
+                && !string.IsNullOrEmpty(sp.GetRequiredService<ISecretStore>()
+                    .GetAsync("github.token").GetAwaiter().GetResult());
+            IDeploymentProvider provider = useGithub
+                ? new GitHubActionsDeploymentProvider(
+                    sp.GetRequiredService<IServiceScopeFactory>(),
+                    sp.GetRequiredService<ISecretStore>(),
+                    sp.GetRequiredService<IHttpClientFactory>(),
+                    config,
+                    sp.GetRequiredService<ILogSink>(),
+                    sp.GetService<IDeploymentNotifier>(),
+                    sp.GetService<ILogger<GitHubActionsDeploymentProvider>>())
+                : new MockDeploymentProvider(
+                    sp.GetRequiredService<IServiceScopeFactory>(),
+                    sp.GetRequiredService<ILogSink>(),
+                    sp.GetService<IDeploymentNotifier>(),
+                    mockOptions,
+                    sp.GetService<ILogger<MockDeploymentProvider>>());
+            return provider;
+        });
 
         // jobs — Quartz in-memory store; job_definitions/executions are the DB view
         IReadOnlyList<JobRegistration> jobs =

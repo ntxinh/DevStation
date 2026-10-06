@@ -34,7 +34,7 @@ public class DevStationDbContext(DbContextOptions<DevStationDbContext> options)
     protected override void ConfigureConventions(ModelConfigurationBuilder cb)
     {
         // enums as text for readable rows
-        foreach (var t in new[] { typeof(HealthStatus), typeof(JobStatus), typeof(DeploymentStatus), typeof(DeploymentState), typeof(IntegrationStatus) })
+        foreach (var t in new[] { typeof(HealthStatus), typeof(JobStatus), typeof(DeploymentStatus), typeof(IntegrationStatus) })
             cb.Properties(t).HaveConversion<string>().HaveMaxLength(32);
 
         // SecretRef stores only the key — column named per spec

@@ -2,7 +2,7 @@ const DOT: Record<string, string> = {
   healthy: "bg-ok",
   ok: "bg-ok",
   running: "bg-ok",
-  degraded: "bg-warn",
+  queued: "bg-warn",
   warn: "bg-warn",
   paused: "bg-warn",
   unhealthy: "bg-err",
@@ -12,6 +12,7 @@ const DOT: Record<string, string> = {
   "never-run": "bg-muted",
   succeeded: "bg-ok",
   dead: "bg-err",
+  cancelled: "bg-muted",
   unknown: "bg-muted",
 };
 

@@ -1,5 +1,6 @@
 using DevStation.Application.Modules.Containers;
 using DevStation.Application.Modules.Dashboard.GetDashboardSummary;
+using DevStation.Application.Modules.Deployments;
 using DevStation.Application.Modules.Databases;
 using DevStation.Application.Modules.Environments;
 using DevStation.Application.Modules.Health;
@@ -13,6 +14,7 @@ using DevStation.Web.Hubs;
 using DevStation.Web.Modules.Containers;
 using DevStation.Web.Modules.Dashboard;
 using DevStation.Web.Modules.Databases;
+using DevStation.Web.Modules.Deployments;
 using DevStation.Web.Modules.Environments;
 using DevStation.Web.Modules.Health;
 using DevStation.Web.Modules.Jobs;
@@ -45,7 +47,8 @@ b.Services.AddProjectsModule().AddDashboardModule()
     .AddEnvironmentsModule().AddHealthModule()
     .AddServicesModule().AddContainersModule()
     .AddDatabasesModule()
-    .AddJobsModule();
+    .AddJobsModule()
+    .AddDeploymentsModule();
 
 var app = b.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
@@ -65,8 +68,10 @@ ServicesEndpoints.Map(api);
 ContainersEndpoints.Map(api);
 DatabasesEndpoints.Map(api);
 JobsEndpoints.Map(api);
+DeploymentsEndpoints.Map(api);
 app.MapHub<HealthHub>("/hubs/health").RequireAuthorization("Read");
 app.MapHub<JobsHub>("/hubs/jobs").RequireAuthorization("Read");
+app.MapHub<DeploymentsHub>("/hubs/deployments").RequireAuthorization("Read");
 
 app.Run();
 

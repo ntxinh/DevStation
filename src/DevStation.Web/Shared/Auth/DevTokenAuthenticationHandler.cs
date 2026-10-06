@@ -22,11 +22,17 @@ public sealed class DevTokenAuthenticationHandler(
             ? h["Bearer ".Length..]
             : Request.Query["access_token"].ToString(); // SignalR
 
-        if (!string.Equals(token, expected, StringComparison.Ordinal))
+        if (!string.Equals(token, expected, StringComparison.Ordinal) &&
+            !config.GetSection("DevStation:TokenTiers")
+                .GetChildren().Any(c => c.Key == token))
             return Task.FromResult(AuthenticateResult.Fail("Invalid or missing dev token"));
 
+        // main token is admin; extra tokens get their configured tier
+        // (DevStation:TokenTiers:<token> = read|execute|deploy|admin)
+        var tier = token == expected ? "admin"
+            : config[$"DevStation:TokenTiers:{token}"] ?? "admin";
         var identity = new ClaimsIdentity(
-            [new Claim(ClaimTypes.Name, "dev"), new Claim("tier", "admin")],
+            [new Claim(ClaimTypes.Name, "dev"), new Claim("tier", tier)],
             Scheme.Name);
         return Task.FromResult(AuthenticateResult.Success(
             new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name)));
