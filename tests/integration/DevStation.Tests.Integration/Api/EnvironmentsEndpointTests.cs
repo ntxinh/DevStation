@@ -2,8 +2,13 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using DevStation.Application.Shared.Results;
+using DevStation.Domain.Entities;
+using DevStation.Domain.Enums;
+using DevStation.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 
 namespace DevStation.Tests.Integration.Api;
@@ -86,6 +91,83 @@ public class EnvironmentsEndpointTests : IAsyncLifetime
             (await _client.DeleteAsync($"/api/environments/{id}?confirm=true")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound,
             (await _client.GetAsync($"/api/environments/{id}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Delete_environment_cascades_checks_results_and_services()
+    {
+        var envId = await CreateEnv("doomed", ("K", "v", true));
+
+        var created = await _client.PostAsJsonAsync("/api/health", new
+        {
+            name = "env check", kind = "tcp",
+            target = "localhost:1", environmentId = envId, intervalSeconds = 60,
+        });
+        Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+        var checkId = (await created.Content
+            .ReadFromJsonAsync<ApiEnvelope<HealthCheckDto>>())!.Data!.Id;
+        Assert.Equal(HttpStatusCode.OK,
+            (await _client.PostAsync($"/api/health/{checkId}/check", null)).StatusCode);
+
+        // a service bound to the env — no services API yet, seed directly
+        await using (var db = NewDb())
+        {
+            db.Services.Add(new Service { EnvironmentId = envId, Name = "svc" });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(HttpStatusCode.OK,
+            (await _client.DeleteAsync($"/api/environments/{envId}?confirm=true"))
+                .StatusCode);
+
+        await using (var db = NewDb())
+        {
+            Assert.Empty(await db.HealthChecks
+                .Where(h => h.EnvironmentId == envId).ToListAsync());
+            Assert.Empty(await db.HealthCheckResults
+                .Where(r => r.HealthCheckId == checkId).ToListAsync());
+            Assert.Empty(await db.Services
+                .Where(s => s.EnvironmentId == envId).ToListAsync());
+        }
+    }
+
+    [Fact]
+    public async Task Env_health_uses_latest_result_per_check()
+    {
+        var envId = await CreateEnv("health-agg");
+        var created = await _client.PostAsJsonAsync("/api/health", new
+        {
+            name = "c", kind = "tcp", target = "localhost:1",
+            environmentId = envId, intervalSeconds = 60,
+        });
+        var checkId = (await created.Content
+            .ReadFromJsonAsync<ApiEnvelope<HealthCheckDto>>())!.Data!.Id;
+
+        await using (var db = NewDb())
+        {
+            // old unhealthy, newest healthy → env must be "healthy" (latest wins)
+            db.HealthCheckResults.Add(new HealthCheckResult
+            {
+                HealthCheckId = checkId, Status = HealthStatus.Unhealthy,
+                CheckedAt = DateTimeOffset.UtcNow.AddHours(-1),
+            });
+            db.HealthCheckResults.Add(new HealthCheckResult
+            {
+                HealthCheckId = checkId, Status = HealthStatus.Healthy,
+                CheckedAt = DateTimeOffset.UtcNow,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var list = await _client.GetFromJsonAsync<ApiEnvelope<List<EnvDto>>>(
+            "/api/environments");
+        Assert.Equal("healthy", list!.Data!.Single(e => e.Id == envId).Health);
+    }
+
+    private DevStationDbContext NewDb()
+    {
+        var scope = _factory.Services.CreateScope();
+        return scope.ServiceProvider.GetRequiredService<DevStationDbContext>();
     }
 
     [Fact]

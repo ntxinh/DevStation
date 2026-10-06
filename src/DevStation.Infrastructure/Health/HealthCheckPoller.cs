@@ -61,10 +61,19 @@ public sealed class HealthCheckPoller(
                 HealthCheckId = h.Id, Status = r.Status,
                 LatencyMs = r.LatencyMs, Error = r.Error, CheckedAt = r.CheckedAt,
             });
-            if (notifier is not null)
-                await notifier.Publish(new HealthCheckUpdate(h.Id, r.Status,
-                    r.LatencyMs, r.Error, r.CheckedAt), ct);
         }
         await db.SaveChangesAsync(ct);
+
+        // broadcast only what actually persisted
+        if (notifier is not null)
+            foreach (var (h, r) in results)
+                await notifier.Publish(new HealthCheckUpdate(h.Id, r.Status,
+                    r.LatencyMs, r.Error, r.CheckedAt), ct);
+
+        // retention: keep 7 days of results, one set-delete per tick
+        var cutoff = now.AddDays(-7);
+        await db.HealthCheckResults
+            .Where(r => r.CheckedAt < cutoff)
+            .ExecuteDeleteAsync(ct);
     }
 }

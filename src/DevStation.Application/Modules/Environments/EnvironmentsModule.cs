@@ -21,26 +21,28 @@ public static class EnvironmentsModule
         .AddScoped<DeleteEnvironmentHandler>()
         .AddScoped<CompareEnvironmentsHandler>();
 
-    /// <summary>Aggregate of each environment's latest check result → lowercase HealthStatus.</summary>
+    /// <summary>Aggregate of each environment's latest check result → lowercase HealthStatus.
+    /// Fetches only the latest row per check — never loads the whole results table.</summary>
     public static async Task<Dictionary<Guid, string>> LatestHealthByEnvironment(
         IDevStationDb db, CancellationToken ct)
     {
-        var checks = await db.HealthChecks
+        var latest = await db.HealthChecks
             .Where(h => h.EnvironmentId != null && h.Enabled)
-            .Select(h => new { h.Id, EnvId = h.EnvironmentId!.Value })
+            .Select(h => new
+            {
+                EnvId = h.EnvironmentId!.Value,
+                Latest = db.HealthCheckResults
+                    .Where(r => r.HealthCheckId == h.Id)
+                    .OrderByDescending(r => r.CheckedAt)
+                    .Select(r => (HealthStatus?)r.Status)
+                    .FirstOrDefault(),
+            })
             .ToListAsync(ct);
-        var ids = checks.Select(c => c.Id).ToList();
-        var results = await db.HealthCheckResults
-            .Where(r => ids.Contains(r.HealthCheckId))
-            .ToListAsync(ct);
-        // latest result per check, then per env: unhealthy > degraded > healthy
-        return checks
-            .Select(c => (
-                c.EnvId,
-                results.Where(r => r.HealthCheckId == c.Id)
-                       .MaxBy(r => r.CheckedAt)?.Status))
+
+        // per env: unhealthy > degraded > unknown > healthy
+        return latest
             .GroupBy(x => x.EnvId)
-            .ToDictionary(g => g.Key, g => Aggregate(g.Select(x => x.Status)));
+            .ToDictionary(g => g.Key, g => Aggregate(g.Select(x => x.Latest)));
     }
 
     public static string Aggregate(IEnumerable<HealthStatus?> statuses)

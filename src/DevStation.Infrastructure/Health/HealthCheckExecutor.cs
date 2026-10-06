@@ -37,7 +37,7 @@ public sealed class HealthCheckExecutor(IServiceProvider services) : IHealthChec
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(TimeSpan.FromSeconds(timeout));
-            var res = await Http.GetAsync(uri, cts.Token);
+            using var res = await Http.GetAsync(uri, cts.Token);
             return (int)res.StatusCode < 400
                 ? (HealthStatus.Healthy, null)
                 : (HealthStatus.Unhealthy, $"HTTP {(int)res.StatusCode}");
