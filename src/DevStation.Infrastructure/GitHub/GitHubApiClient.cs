@@ -23,11 +23,7 @@ public sealed record GitHubPullRequest(
     [property: JsonPropertyName("draft")] bool Draft,
     [property: JsonPropertyName("html_url")] string HtmlUrl,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
-    [property: JsonPropertyName("user")] GitHubUser? UserNode)
-{
-    /// <summary>Author login (nested object on the wire; flattened for reads).</summary>
-    [JsonIgnore] public string User => UserNode?.Login ?? "";
-}
+    [property: JsonPropertyName("user")] GitHubUser? User);
 
 public sealed record GitHubUser([property: JsonPropertyName("login")] string Login);
 
@@ -71,7 +67,7 @@ public sealed class GitHubApiClient(HttpClient http, ISecretStore secrets)
     private async Task<string> GetJson(string path, CancellationToken ct)
     {
         using var req = await Request(path, ct);
-        var res = await http.SendAsync(req, ct);
+        using var res = await http.SendAsync(req, ct);
         if (!res.IsSuccessStatusCode)
             throw new AppException("INTEGRATION_ERROR", 502,
                 $"github api returned {(int)res.StatusCode} {res.ReasonPhrase}");
@@ -100,11 +96,12 @@ public sealed class GitHubApiClient(HttpClient http, ISecretStore secrets)
         try
         {
             using var req = await Request("/user", ct);
-            var res = await http.SendAsync(req, ct);
+            using var res = await http.SendAsync(req, ct);
             return res.IsSuccessStatusCode;
         }
         catch (HttpRequestException) { return false; }
-        catch (TaskCanceledException) { return false; }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        { return false; } // timeout → probe fails; caller cancellation propagates
     }
 
     // --- pure parsers (unit-tested against recorded fixtures) ---

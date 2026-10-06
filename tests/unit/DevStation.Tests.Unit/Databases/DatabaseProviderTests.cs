@@ -56,8 +56,12 @@ public class EnvSecretStoreTests : IDisposable
         await store.SetAsync("dbconn-test-x", "runtime-val");
         Assert.Equal("runtime-val", await store.GetAsync("dbconn-test-x"));
         await store.DeleteAsync("dbconn-test-x");
-        // runtime gone → falls back to env
-        Assert.Equal("env-val", await store.GetAsync("dbconn-test-x"));
+        // delete tombstones the key — env fallback must not resurrect it
+        // (disconnect would otherwise report ok while creds still resolve)
+        Assert.Null(await store.GetAsync("dbconn-test-x"));
+        // a fresh SetAsync clears the tombstone
+        await store.SetAsync("dbconn-test-x", "again");
+        Assert.Equal("again", await store.GetAsync("dbconn-test-x"));
     }
 
     public void Dispose() => Environment.SetEnvironmentVariable(EnvKey, null);

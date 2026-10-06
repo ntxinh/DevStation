@@ -30,7 +30,7 @@ export interface GitHubRepo {
 export interface GitHubPullRequest {
   number: number;
   title: string;
-  state: string;
+  user: { login: string } | null;
   draft: boolean;
   html_url: string;
   created_at: string;

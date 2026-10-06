@@ -48,13 +48,14 @@ public sealed class AzureIntegration(ISecretStore secrets,
                 "https://management.azure.com/subscriptions?api-version=2020-01-01");
             req.Headers.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            var res = await http.SendAsync(req, ct);
+            using var res = await http.SendAsync(req, ct);
             Status = res.IsSuccessStatusCode
                 ? IntegrationStatus.Connected : IntegrationStatus.Error;
             return res.IsSuccessStatusCode;
         }
         catch (HttpRequestException) { return Fail(); }
-        catch (TaskCanceledException) { return Fail(); }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        { return Fail(); } // timeout → probe fails; caller cancellation propagates
         catch (JsonException) { return Fail(); }
         catch (KeyNotFoundException) { return Fail(); }
     }

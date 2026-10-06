@@ -72,7 +72,7 @@ public class GitHubParsingTests
         var p = Assert.Single(pulls);
         Assert.Equal(42, p.Number);
         Assert.Equal("Add integrations", p.Title);
-        Assert.Equal("octocat", p.User);
+        Assert.Equal("octocat", p.User?.Login);
         Assert.Equal("open", p.State);
         Assert.False(p.Draft);
         Assert.Equal("https://github.com/me/devstation/pull/42", p.HtmlUrl);

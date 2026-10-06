@@ -84,12 +84,11 @@ export function GitHubPanel({ enabled }: { enabled: boolean }) {
                   <a
                     href={p.html_url}
                     target="_blank"
-                    rel="noreferrer"
                     className="text-accent hover:underline"
                   >
                     #{p.number} {p.title}
                   </a>
-                  <span className="text-muted"> — {p.userNode?.login}</span>
+                  <span className="text-muted"> — {p.user?.login}</span>
                 </li>
               ))}
               {pulls.data?.length === 0 ? (

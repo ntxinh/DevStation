@@ -27,12 +27,13 @@ public sealed class CloudflareIntegration(ISecretStore secrets,
                 "https://api.cloudflare.com/client/v4/user/tokens/verify");
             req.Headers.Authorization =
                 new AuthenticationHeaderValue("Bearer", token);
-            var res = await http.SendAsync(req, ct);
+            using var res = await http.SendAsync(req, ct);
             Status = res.IsSuccessStatusCode
                 ? IntegrationStatus.Connected : IntegrationStatus.Error;
             return res.IsSuccessStatusCode;
         }
         catch (HttpRequestException) { return Fail(); }
-        catch (TaskCanceledException) { return Fail(); }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        { return Fail(); } // timeout → probe fails; caller cancellation propagates
     }
 }
