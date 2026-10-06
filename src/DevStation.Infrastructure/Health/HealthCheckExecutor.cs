@@ -1,8 +1,11 @@
 using System.Diagnostics;
 using System.Net.Sockets;
+using DevStation.Application.Shared.Persistence;
 using DevStation.Application.Shared.Providers;
 using DevStation.Application.Shared.Results;
+using DevStation.Application.Shared.Secrets;
 using DevStation.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DevStation.Infrastructure.Health;
@@ -20,7 +23,7 @@ public sealed class HealthCheckExecutor(IServiceProvider services) : IHealthChec
         {
             "http" => await CheckHttp(check.Target, timeout, ct),
             "tcp" => await CheckTcp(check.Target, timeout, ct),
-            "database" => ProviderCheck("IDatabaseProvider", check.Target),
+            "database" => await CheckDatabase(check.Target, timeout, ct),
             "container" => await CheckContainer(check.Target, ct),
             // ponytail: custom checks need user-supplied probe code — sandbox/scripting not built
             _ => (HealthStatus.Unknown, "custom checks not evaluated"),
@@ -95,15 +98,42 @@ public sealed class HealthCheckExecutor(IServiceProvider services) : IHealthChec
         catch (AppException e) { return (HealthStatus.Unknown, e.Message); }
     }
 
-    // ponytail: IDatabaseProvider lands in Task 8 — resolved by name so this code
-    // compiles before it exists. Registered but unprobed → Unknown either way.
-    private (HealthStatus, string?) ProviderCheck(string providerName, string target)
+    private async Task<(HealthStatus, string?)> CheckDatabase(
+        string target, int timeout, CancellationToken ct)
     {
-        var t = Type.GetType(
-            $"DevStation.Application.Shared.Providers.{providerName}, DevStation.Application");
-        var provider = t is null ? null : services.GetService(t);
-        return (HealthStatus.Unknown, provider is null
-            ? $"no {providerName} registered"
-            : $"{providerName} registered but probe not wired");
+        // target = connection name or id — resolved against the conn registry;
+        // scoped deps need a scope (executor is a singleton)
+        await using var scope = services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetService<IDevStationDb>();
+        var providers = scope.ServiceProvider
+            .GetServices<IDatabaseProvider>().ToList();
+        var secrets = scope.ServiceProvider.GetService<ISecretStore>();
+        if (db is null || secrets is null)
+            return (HealthStatus.Unknown, "database probe deps not registered");
+
+        var conn = await db.DatabaseConnections
+            .FirstOrDefaultAsync(x => x.Name == target || x.Id.ToString() == target, ct);
+        if (conn is null)
+            return (HealthStatus.Unknown, $"no database connection '{target}'");
+        try
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(timeout));
+            var pw = conn.PasswordRef is null
+                ? null
+                : await secrets.GetAsync(conn.PasswordRef.Key, cts.Token);
+            var ok = await providers.For(conn.Kind)
+                .TestConnectionAsync(conn, pw, cts.Token);
+            return ok ? (HealthStatus.Healthy, null)
+                      : (HealthStatus.Unhealthy, "probe returned false");
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return (HealthStatus.Unhealthy, $"timeout after {timeout}s");
+        }
+        catch (Exception ex)
+        {
+            return (HealthStatus.Unhealthy, ex.Message);
+        }
     }
 }

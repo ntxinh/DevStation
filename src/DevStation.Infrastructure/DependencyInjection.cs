@@ -1,11 +1,14 @@
 using DevStation.Application.Shared.Auditing;
 using DevStation.Application.Shared.Persistence;
 using DevStation.Application.Shared.Providers;
+using DevStation.Application.Shared.Secrets;
 using DevStation.Infrastructure.Auditing;
 using DevStation.Infrastructure.Containers;
+using DevStation.Infrastructure.Databases;
 using DevStation.Infrastructure.Git;
 using DevStation.Infrastructure.Health;
 using DevStation.Infrastructure.Persistence;
+using DevStation.Infrastructure.Secrets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +31,9 @@ public static class DependencyInjection
         services.AddSingleton<ContainerCliRunner>();
         services.AddSingleton<IContainerProvider>(sp =>
             ContainerProviderDetector.Detect(sp.GetRequiredService<ContainerCliRunner>()));
+        services.AddSingleton<IDatabaseProvider, PostgreSqlProvider>();
+        services.AddSingleton<IDatabaseProvider, SqlServerProvider>();
+        services.AddSingleton<ISecretStore, EnvSecretStore>();
         return services;
     }
 }
