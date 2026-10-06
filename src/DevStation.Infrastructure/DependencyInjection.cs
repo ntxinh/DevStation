@@ -7,11 +7,13 @@ using DevStation.Infrastructure.Containers;
 using DevStation.Infrastructure.Databases;
 using DevStation.Infrastructure.Git;
 using DevStation.Infrastructure.Health;
+using DevStation.Infrastructure.Jobs;
 using DevStation.Infrastructure.Persistence;
 using DevStation.Infrastructure.Secrets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Quartz;
 
 namespace DevStation.Infrastructure;
 
@@ -34,6 +36,31 @@ public static class DependencyInjection
         services.AddSingleton<IDatabaseProvider, PostgreSqlProvider>();
         services.AddSingleton<IDatabaseProvider, SqlServerProvider>();
         services.AddSingleton<ISecretStore, EnvSecretStore>();
+
+        // jobs — Quartz in-memory store; job_definitions/executions are the DB view
+        IReadOnlyList<JobRegistration> jobs =
+            config.GetSection("Jobs").Get<List<JobRegistration>>() ?? [];
+        services.AddSingleton(jobs);
+        services.AddSingleton<IJobProvider, QuartzJobProvider>();
+        services.AddQuartz(q =>
+        {
+            q.AddJobListener(sp => new AuditingJobListener(
+                sp.GetRequiredService<IServiceScopeFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AuditingJobListener>>()),
+                []);
+            foreach (var reg in jobs)
+            {
+                q.AddJob(reg.JobType, j => j
+                    .WithIdentity(reg.Name)
+                    .WithDescription(reg.Description ?? ""));
+                q.AddTrigger(t => t
+                    .WithIdentity($"{reg.Name}-trigger")
+                    .ForJob(reg.Name)
+                    .WithSchedule(reg.Schedule));
+            }
+        });
+        services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
+        services.AddHostedService<JobDefinitionSync>(); // after migrations (order matters)
         return services;
     }
 }

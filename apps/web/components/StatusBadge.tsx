@@ -7,6 +7,10 @@ const DOT: Record<string, string> = {
   paused: "bg-warn",
   unhealthy: "bg-err",
   err: "bg-err",
+  failing: "bg-err",
+  failed: "bg-err",
+  "never-run": "bg-muted",
+  succeeded: "bg-ok",
   dead: "bg-err",
   unknown: "bg-muted",
 };

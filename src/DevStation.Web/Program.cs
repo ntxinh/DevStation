@@ -3,6 +3,7 @@ using DevStation.Application.Modules.Dashboard.GetDashboardSummary;
 using DevStation.Application.Modules.Databases;
 using DevStation.Application.Modules.Environments;
 using DevStation.Application.Modules.Health;
+using DevStation.Application.Modules.Jobs;
 using DevStation.Application.Modules.Projects;
 using DevStation.Application.Modules.Services;
 using DevStation.Application.Shared.Providers;
@@ -14,6 +15,7 @@ using DevStation.Web.Modules.Dashboard;
 using DevStation.Web.Modules.Databases;
 using DevStation.Web.Modules.Environments;
 using DevStation.Web.Modules.Health;
+using DevStation.Web.Modules.Jobs;
 using DevStation.Web.Modules.Projects;
 using DevStation.Web.Modules.Services;
 using DevStation.Web.Shared.Auth;
@@ -37,11 +39,13 @@ b.Services.AddAuthorization(o =>
 b.Services.AddSingleton<IAuthorizationHandler, TierHandler>();
 b.Services.AddSignalR();
 b.Services.AddSingleton<IHealthCheckNotifier, SignalRHealthNotifier>();
+b.Services.AddSingleton<IJobNotifier, SignalRJobNotifier>();
 b.Services.AddInfrastructure(b.Configuration);
 b.Services.AddProjectsModule().AddDashboardModule()
     .AddEnvironmentsModule().AddHealthModule()
     .AddServicesModule().AddContainersModule()
-    .AddDatabasesModule();
+    .AddDatabasesModule()
+    .AddJobsModule();
 
 var app = b.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
@@ -60,7 +64,9 @@ DashboardEndpoints.Map(api);
 ServicesEndpoints.Map(api);
 ContainersEndpoints.Map(api);
 DatabasesEndpoints.Map(api);
+JobsEndpoints.Map(api);
 app.MapHub<HealthHub>("/hubs/health").RequireAuthorization("Read");
+app.MapHub<JobsHub>("/hubs/jobs").RequireAuthorization("Read");
 
 app.Run();
 
