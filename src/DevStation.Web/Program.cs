@@ -1,3 +1,5 @@
+using DevStation.Infrastructure;
+
 using DevStation.Web.Modules.Health;
 using DevStation.Web.Shared.Auth;
 using DevStation.Web.Shared.Middleware;
@@ -18,7 +20,8 @@ b.Services.AddAuthorization(o =>
         o.AddPolicy(t, p => p.Requirements.Add(new TierRequirement(t.ToLowerInvariant())));
 });
 b.Services.AddSingleton<IAuthorizationHandler, TierHandler>();
-// module DI + DbContext added by later tasks via extension methods
+b.Services.AddInfrastructure(b.Configuration);
+// module DI added by later tasks via extension methods
 
 var app = b.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();

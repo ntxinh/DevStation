@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DevStation.Web", "DevStatio
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DevStation.Tests.Unit", "..\tests\unit\DevStation.Tests.Unit\DevStation.Tests.Unit.csproj", "{E460226A-6403-412C-895F-E7C946D4281D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DevStation.Tests.Integration", "..\tests\integration\DevStation.Tests.Integration\DevStation.Tests.Integration.csproj", "{ED0909AA-7AF2-4E37-9909-198A2C4342C4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{E460226A-6403-412C-895F-E7C946D4281D}.Release|x64.Build.0 = Release|Any CPU
 		{E460226A-6403-412C-895F-E7C946D4281D}.Release|x86.ActiveCfg = Release|Any CPU
 		{E460226A-6403-412C-895F-E7C946D4281D}.Release|x86.Build.0 = Release|Any CPU
+		{ED0909AA-7AF2-4E37-9909-198A2C4342C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED0909AA-7AF2-4E37-9909-198A2C4342C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED0909AA-7AF2-4E37-9909-198A2C4342C4}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{ED0909AA-7AF2-4E37-9909-198A2C4342C4}.Debug|x64.Build.0 = Debug|Any CPU
+		{ED0909AA-7AF2-4E37-9909-198A2C4342C4}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{ED0909AA-7AF2-4E37-9909-198A2C4342C4}.Debug|x86.Build.0 = Debug|Any CPU
+		{ED0909AA-7AF2-4E37-9909-198A2C4342C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED0909AA-7AF2-4E37-9909-198A2C4342C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED0909AA-7AF2-4E37-9909-198A2C4342C4}.Release|x64.ActiveCfg = Release|Any CPU
+		{ED0909AA-7AF2-4E37-9909-198A2C4342C4}.Release|x64.Build.0 = Release|Any CPU
+		{ED0909AA-7AF2-4E37-9909-198A2C4342C4}.Release|x86.ActiveCfg = Release|Any CPU
+		{ED0909AA-7AF2-4E37-9909-198A2C4342C4}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
