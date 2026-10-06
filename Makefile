@@ -6,7 +6,7 @@ test: test-unit test-integration ; pnpm --dir apps/web test -- --run
 test-unit: ; dotnet test tests/unit/DevStation.Tests.Unit -v minimal
 test-integration: ; DOCKER_HOST=unix://$$XDG_RUNTIME_DIR/podman/podman.sock dotnet test tests/integration/DevStation.Tests.Integration -v minimal
 test-e2e: ; pnpm --dir apps/web exec playwright test
-lint: ; dotnet format src/DevStation.sln --verify-no-changes ; pnpm --dir apps/web lint
+lint: ; dotnet format src/DevStation.sln --verify-no-changes && pnpm --dir apps/web lint
 format: ; dotnet format src/DevStation.sln ; pnpm --dir apps/web exec prettier --write .
 migrate: ; dotnet ef database update --project src/DevStation.Infrastructure --startup-project src/DevStation.Web
 db-reset: ; ./scripts/db-reset.sh

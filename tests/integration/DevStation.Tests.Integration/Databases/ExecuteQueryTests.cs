@@ -65,9 +65,14 @@ public class ExecuteQueryTests : IAsyncLifetime
         var b = new NpgsqlConnectionStringBuilder(_pg.GetConnectionString());
         var res = await _client.PostAsJsonAsync("/api/databases/connections", new
         {
-            name, kind = "postgresql", environmentId = envId,
-            host = b.Host, port = b.Port, database = b.Database,
-            username = b.Username, password = b.Password,
+            name,
+            kind = "postgresql",
+            environmentId = envId,
+            host = b.Host,
+            port = b.Port,
+            database = b.Database,
+            username = b.Username,
+            password = b.Password,
             readOnly,
         });
         var body = await res.Content.ReadAsStringAsync();
@@ -162,8 +167,11 @@ public class ExecuteQueryTests : IAsyncLifetime
         var id = await CreateConn("it-health", readOnly: true);
         var created = await _client.PostAsJsonAsync("/api/health", new
         {
-            name = "db probe", kind = "database", target = "it-health",
-            intervalSeconds = 60, timeoutSeconds = 10,
+            name = "db probe",
+            kind = "database",
+            target = "it-health",
+            intervalSeconds = 60,
+            timeoutSeconds = 10,
         });
         var checkId = JsonSerializer.Deserialize<JsonElement>(
                 await created.Content.ReadAsStringAsync())
@@ -178,8 +186,10 @@ public class ExecuteQueryTests : IAsyncLifetime
         // non-existent target name → unhealthy, not a 500
         var bad = await _client.PostAsJsonAsync("/api/health", new
         {
-            name = "db probe missing", kind = "database",
-            target = "no-such-conn", intervalSeconds = 60,
+            name = "db probe missing",
+            kind = "database",
+            target = "no-such-conn",
+            intervalSeconds = 60,
         });
         var badId = JsonSerializer.Deserialize<JsonElement>(
                 await bad.Content.ReadAsStringAsync())

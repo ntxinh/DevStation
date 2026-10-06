@@ -19,7 +19,9 @@ public class CreateProjectValidatorTests
         => Assert.Empty(CreateProjectValidator.Validate(Valid()));
 
     [Theory]
-    [InlineData(null)][InlineData("")][InlineData("   ")]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
     public void Name_required(string? name)
     {
         var r = Valid() with { Name = name! };
@@ -48,17 +50,23 @@ public class CreateProjectValidatorTests
         => Assert.Empty(CreateProjectValidator.Validate(Valid() with { Name = new string('x', 200) }));
 
     [Theory]
-    [InlineData("ftp://x")][InlineData("not a url")][InlineData("javascript:alert(1)")]
+    [InlineData("ftp://x")]
+    [InlineData("not a url")]
+    [InlineData("javascript:alert(1)")]
     public void RepositoryUrl_must_be_http_or_https(string url)
         => Assert.NotEmpty(CreateProjectValidator.Validate(Valid() with { RepositoryUrl = url }));
 
     [Theory]
-    [InlineData(null)][InlineData("https://github.com/x/y")][InlineData("http://git.local/r")]
+    [InlineData(null)]
+    [InlineData("https://github.com/x/y")]
+    [InlineData("http://git.local/r")]
     public void RepositoryUrl_http_or_empty_ok(string? url)
         => Assert.Empty(CreateProjectValidator.Validate(Valid() with { RepositoryUrl = url }));
 
     [Theory]
-    [InlineData("relative/path")][InlineData("./repo")][InlineData("repo")]
+    [InlineData("relative/path")]
+    [InlineData("./repo")]
+    [InlineData("repo")]
     public void LocalPath_must_be_absolute(string path)
         => Assert.NotEmpty(CreateProjectValidator.Validate(Valid() with { LocalPath = path }));
 

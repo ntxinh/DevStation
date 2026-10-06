@@ -34,8 +34,11 @@ public static class EnvironmentsEndpoints
             .RequireAuthorization("Execute");
         api.MapDelete("/environments/{id:guid}", async (Guid id, bool? confirm,
                 DeleteEnvironmentHandler h, ClaimsPrincipal u, CancellationToken ct)
-            => { ConfirmGate.Require(confirm == true);
-                 await h.Handle(id, u, ct); return ApiResult.Ok(new { deleted = true }); })
+            =>
+        {
+            ConfirmGate.Require(confirm == true);
+            await h.Handle(id, u, ct); return ApiResult.Ok(new { deleted = true });
+        })
             .RequireAuthorization("Execute");
     }
 }

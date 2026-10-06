@@ -55,8 +55,10 @@ public sealed class GitHubActionsDeploymentProvider : IDeploymentProvider
     {
         var d = new Deployment
         {
-            ProjectId = projectId, EnvironmentId = environmentId,
-            Commit = commit ?? _o.Ref, Status = DeploymentStatus.Queued,
+            ProjectId = projectId,
+            EnvironmentId = environmentId,
+            Commit = commit ?? _o.Ref,
+            Status = DeploymentStatus.Queued,
             TriggeredBy = triggeredBy,
         };
         _store.LogLine(d, "info", $"dispatching {_o.WorkflowId} on {_o.Owner}/{_o.Repo}");

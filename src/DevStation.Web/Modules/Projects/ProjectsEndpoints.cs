@@ -29,8 +29,11 @@ public static class ProjectsEndpoints
             .RequireAuthorization("Execute");
         api.MapDelete("/projects/{id:guid}", async (Guid id, bool? confirm,
                 DeleteProjectHandler h, ClaimsPrincipal u, CancellationToken ct)
-            => { ConfirmGate.Require(confirm == true);
-                 await h.Handle(id, u, ct); return ApiResult.Ok(new { deleted = true }); })
+            =>
+        {
+            ConfirmGate.Require(confirm == true);
+            await h.Handle(id, u, ct); return ApiResult.Ok(new { deleted = true });
+        })
             .RequireAuthorization("Execute");
         api.MapGet("/projects/{id:guid}/git", async (Guid id, GetGitStatusHandler h, CancellationToken ct)
             => ApiResult.Ok(await h.Handle(id, ct)));

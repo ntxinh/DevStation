@@ -102,8 +102,11 @@ public class CompareTests
         var b = Env("b");
         var depA = new Deployment
         {
-            EnvironmentId = a.Id, Version = "1.0", Commit = "aaa",
-            Status = DeploymentStatus.Succeeded, FinishedAt = DateTimeOffset.UtcNow,
+            EnvironmentId = a.Id,
+            Version = "1.0",
+            Commit = "aaa",
+            Status = DeploymentStatus.Succeeded,
+            FinishedAt = DateTimeOffset.UtcNow,
         };
 
         var diff = EnvironmentCompare.Diff(a, b, [], [], [depA], []);
@@ -122,13 +125,17 @@ public class CompareTests
         var a = Env("a");
         var older = new Deployment
         {
-            EnvironmentId = a.Id, Version = "0.9", Commit = "old",
+            EnvironmentId = a.Id,
+            Version = "0.9",
+            Commit = "old",
             Status = DeploymentStatus.Succeeded,
             FinishedAt = DateTimeOffset.UtcNow.AddDays(-2),
         };
         var failed = new Deployment
         {
-            EnvironmentId = a.Id, Version = "9.9", Commit = "bad",
+            EnvironmentId = a.Id,
+            Version = "9.9",
+            Commit = "bad",
             Status = DeploymentStatus.Failed,
             FinishedAt = DateTimeOffset.UtcNow,
         };

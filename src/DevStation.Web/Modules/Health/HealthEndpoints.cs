@@ -24,8 +24,11 @@ public static class HealthEndpoints
             .RequireAuthorization("Execute");
         api.MapDelete("/health/{id:guid}", async (Guid id, bool? confirm,
                 DeleteHealthCheckHandler h, ClaimsPrincipal u, CancellationToken ct)
-            => { ConfirmGate.Require(confirm == true);
-                 await h.Handle(id, u, ct); return ApiResult.Ok(new { deleted = true }); })
+            =>
+        {
+            ConfirmGate.Require(confirm == true);
+            await h.Handle(id, u, ct); return ApiResult.Ok(new { deleted = true });
+        })
             .RequireAuthorization("Execute");
     }
 }

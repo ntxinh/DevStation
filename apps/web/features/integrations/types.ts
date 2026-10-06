@@ -11,7 +11,7 @@ export interface IntegrationDto {
   updatedAt: string | null;
 }
 
-export interface ConnectResult extends IntegrationDto {}
+export type ConnectResult = IntegrationDto;
 export interface TestResult {
   ok: boolean;
   status: string;

@@ -137,7 +137,8 @@ public class LogsAuditSearchEndpointTests : IAsyncLifetime
         db.Projects.Add(new Project { Name = "searchable-proj", Description = "alpha" });
         db.JobDefinitions.Add(new JobDefinition
         {
-            Name = "searchable-job", Type = "noop",
+            Name = "searchable-job",
+            Type = "noop",
         });
         await db.SaveChangesAsync();
 

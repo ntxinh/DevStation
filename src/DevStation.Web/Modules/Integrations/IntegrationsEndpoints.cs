@@ -29,9 +29,12 @@ public static class IntegrationsEndpoints
         api.MapPost("/integrations/{type}/disconnect", async (string type,
                 ConfirmRequest r, DisconnectIntegrationHandler h,
                 ClaimsPrincipal u, CancellationToken ct)
-            => { ConfirmGate.Require(r.Confirm);
-                 await h.Handle(type, u, ct);
-                 return ApiResult.Ok(new { disconnected = true }); })
+            =>
+        {
+            ConfirmGate.Require(r.Confirm);
+            await h.Handle(type, u, ct);
+            return ApiResult.Ok(new { disconnected = true });
+        })
             .RequireAuthorization("Admin");
 
         // GitHub proxy reads — upstream failures surface as 502 INTEGRATION_ERROR

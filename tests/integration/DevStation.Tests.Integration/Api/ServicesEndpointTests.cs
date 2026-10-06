@@ -58,8 +58,11 @@ public class ServicesEndpointTests : IAsyncLifetime
     {
         if (ContainerProviderDetector.Find("podman") is null) return; // no runtime
         var runner = new ContainerCliRunner();
-        try { await runner.RunAsync("podman",
-            ["pull", "-q", "docker.io/library/busybox:latest"], CancellationToken.None); }
+        try
+        {
+            await runner.RunAsync("podman",
+            ["pull", "-q", "docker.io/library/busybox:latest"], CancellationToken.None);
+        }
         catch (AppException) { return; } // offline — skip
 
         var name = $"ds-svc-it-{Guid.NewGuid():N}"[..20];

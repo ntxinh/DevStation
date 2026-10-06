@@ -37,11 +37,34 @@ using DevStation.Web.Shared.Middleware;
 using DevStation.Web.Shared.Modules;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 
 var b = WebApplication.CreateBuilder(args);
 
-// env DEVSTATION_TOKEN -> DevStation:Token
+// env bridges: DEVSTATION_TOKEN -> DevStation:Token,
+// DEVSTATION_CONNECTIONSTRING -> ConnectionStrings:Default
 b.Configuration["DevStation:Token"] ??= b.Configuration["DEVSTATION_TOKEN"];
+b.Configuration["ConnectionStrings:Default"] ??= b.Configuration["DEVSTATION_CONNECTIONSTRING"];
+
+// opt-in OpenTelemetry (console exporter only — no OTLP dependency).
+// Observability:OpenTelemetry:Enabled in config, or OTEL_ENABLED=true env
+var otelEnabled = b.Configuration.GetValue("Observability:OpenTelemetry:Enabled", false)
+    || string.Equals(b.Configuration["OTEL_ENABLED"], "true", StringComparison.OrdinalIgnoreCase);
+if (otelEnabled)
+{
+    b.Services.AddOpenTelemetry()
+        .WithTracing(t => t.AddAspNetCoreInstrumentation().AddConsoleExporter())
+        .WithMetrics(m => m.AddAspNetCoreInstrumentation().AddConsoleExporter());
+}
+
+// web UI runs on a different origin (localhost:3000 → :5080); allow loopback
+// origins only — auth is still enforced by the token on every request
+b.Services.AddCors(o => o.AddDefaultPolicy(p => p
+    .SetIsOriginAllowed(origin =>
+        Uri.TryCreate(origin, UriKind.Absolute, out var u) && u.IsLoopback)
+    .AllowAnyHeader()
+    .AllowAnyMethod()));
 
 b.Services.AddAuthentication("DevToken")
     .AddScheme<AuthenticationSchemeOptions, DevTokenAuthenticationHandler>("DevToken", _ => { });
@@ -72,6 +95,8 @@ b.Services.AddProjectsModule().AddDashboardModule()
 var app = b.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ApiExceptionMiddleware>();
+app.UseMiddleware<RequestTimingMiddleware>();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 

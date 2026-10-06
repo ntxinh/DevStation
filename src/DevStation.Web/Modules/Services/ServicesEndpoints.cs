@@ -25,8 +25,11 @@ public static class ServicesEndpoints
             .RequireAuthorization("Execute");
         api.MapPost("/services/{id:guid}/restart", async (Guid id, bool? confirm,
                 RestartServiceHandler h, ClaimsPrincipal u, CancellationToken ct)
-            => { ConfirmGate.Require(confirm == true);
-                 return ApiResult.Ok(await h.Handle(id, u, ct)); })
+            =>
+        {
+            ConfirmGate.Require(confirm == true);
+            return ApiResult.Ok(await h.Handle(id, u, ct));
+        })
             .RequireAuthorization("Execute");
     }
 }

@@ -52,7 +52,9 @@ public class IntegrationValidationTests
     {
         var i = new Integration
         {
-            Name = "GitHub", Type = "github", Status = IntegrationStatus.Connected,
+            Name = "GitHub",
+            Type = "github",
+            Status = IntegrationStatus.Connected,
             Config = """{"org":"me"}""",
             CredentialsRef = new SecretRef("intg-github-token"),
         };

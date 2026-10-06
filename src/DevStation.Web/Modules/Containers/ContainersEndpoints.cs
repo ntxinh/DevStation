@@ -29,18 +29,27 @@ public static class ContainersEndpoints
 
         api.MapPost("/containers/{id}/start", async (string id, bool? confirm,
                 StartContainerHandler h, ClaimsPrincipal u, CancellationToken ct)
-            => { ConfirmGate.Require(confirm == true);
-                 await h.Handle(id, u, ct); return ApiResult.Ok(new { started = true }); })
+            =>
+        {
+            ConfirmGate.Require(confirm == true);
+            await h.Handle(id, u, ct); return ApiResult.Ok(new { started = true });
+        })
             .RequireAuthorization("Execute");
         api.MapPost("/containers/{id}/stop", async (string id, bool? confirm,
                 StopContainerHandler h, ClaimsPrincipal u, CancellationToken ct)
-            => { ConfirmGate.Require(confirm == true);
-                 await h.Handle(id, u, ct); return ApiResult.Ok(new { stopped = true }); })
+            =>
+        {
+            ConfirmGate.Require(confirm == true);
+            await h.Handle(id, u, ct); return ApiResult.Ok(new { stopped = true });
+        })
             .RequireAuthorization("Execute");
         api.MapPost("/containers/{id}/restart", async (string id, bool? confirm,
                 RestartContainerHandler h, ClaimsPrincipal u, CancellationToken ct)
-            => { ConfirmGate.Require(confirm == true);
-                 await h.Handle(id, u, ct); return ApiResult.Ok(new { restarted = true }); })
+            =>
+        {
+            ConfirmGate.Require(confirm == true);
+            await h.Handle(id, u, ct); return ApiResult.Ok(new { restarted = true });
+        })
             .RequireAuthorization("Execute");
     }
 }

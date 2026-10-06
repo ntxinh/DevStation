@@ -1,0 +1,106 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  DOTNET_VERSION: "10.x"
+  NODE_VERSION: "22"
+  DEVSTATION_TOKEN: ci-e2e-token
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: ${{ env.DOTNET_VERSION }} }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: dotnet restore src/DevStation.sln
+      - run: dotnet format src/DevStation.sln --verify-no-changes
+      - run: pnpm --dir apps/web install --frozen-lockfile
+      - run: pnpm --dir apps/web lint
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: ${{ env.DOTNET_VERSION }} }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: dotnet test tests/unit/DevStation.Tests.Unit -v minimal
+      - run: pnpm --dir apps/web install --frozen-lockfile
+      - run: pnpm --dir apps/web test
+
+  integration:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: ${{ env.DOTNET_VERSION }} }
+      # Testcontainers uses the runner's docker daemon — DOCKER_HOST is a
+      # podman-local override and must stay unset here.
+      - run: dotnet test tests/integration/DevStation.Tests.Integration -v minimal
+
+  e2e:
+    needs: test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: devstation
+          POSTGRES_PASSWORD: devstation
+          POSTGRES_DB: devstation
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U devstation -d devstation"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+    env:
+      DEVSTATION_E2E_DB: "Host=localhost;Port=5432;Database=devstation;Username=devstation;Password=devstation"
+      E2E_DB_HOST: localhost
+      E2E_DB_PORT: "5432"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: ${{ env.DOTNET_VERSION }} }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: dotnet build src/DevStation.Web -c Release
+      - run: pnpm --dir apps/web install --frozen-lockfile
+      - run: pnpm --dir apps/web exec playwright install --with-deps chromium
+      # webServer blocks boot scripts/e2e-api.sh (API on :5080 against the
+      # postgres service via DEVSTATION_E2E_DB) and `pnpm dev` (:3000).
+      - run: pnpm --dir apps/web exec playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          if-no-files-found: ignore
+
+  build-images:
+    needs: [lint, test, integration, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f docker/api.Dockerfile -t devstation-api:ci .
+      - run: docker build -f docker/web.Dockerfile -t devstation-web:ci .

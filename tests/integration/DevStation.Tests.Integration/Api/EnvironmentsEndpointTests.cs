@@ -59,7 +59,9 @@ public class EnvironmentsEndpointTests : IAsyncLifetime
     {
         var created = await _client.PostAsJsonAsync("/api/environments", new
         {
-            name = "staging", type = "staging", baseUrl = "https://stg.example.com",
+            name = "staging",
+            type = "staging",
+            baseUrl = "https://stg.example.com",
             variables = new[]
             {
                 new { key = "LOG_LEVEL", value = "debug", secret = false },
@@ -100,8 +102,11 @@ public class EnvironmentsEndpointTests : IAsyncLifetime
 
         var created = await _client.PostAsJsonAsync("/api/health", new
         {
-            name = "env check", kind = "tcp",
-            target = "localhost:1", environmentId = envId, intervalSeconds = 60,
+            name = "env check",
+            kind = "tcp",
+            target = "localhost:1",
+            environmentId = envId,
+            intervalSeconds = 60,
         });
         Assert.Equal(HttpStatusCode.OK, created.StatusCode);
         var checkId = (await created.Content
@@ -137,8 +142,11 @@ public class EnvironmentsEndpointTests : IAsyncLifetime
         var envId = await CreateEnv("health-agg");
         var created = await _client.PostAsJsonAsync("/api/health", new
         {
-            name = "c", kind = "tcp", target = "localhost:1",
-            environmentId = envId, intervalSeconds = 60,
+            name = "c",
+            kind = "tcp",
+            target = "localhost:1",
+            environmentId = envId,
+            intervalSeconds = 60,
         });
         var checkId = (await created.Content
             .ReadFromJsonAsync<ApiEnvelope<HealthCheckDto>>())!.Data!.Id;
@@ -148,12 +156,14 @@ public class EnvironmentsEndpointTests : IAsyncLifetime
             // old unhealthy, newest healthy → env must be "healthy" (latest wins)
             db.HealthCheckResults.Add(new HealthCheckResult
             {
-                HealthCheckId = checkId, Status = HealthStatus.Unhealthy,
+                HealthCheckId = checkId,
+                Status = HealthStatus.Unhealthy,
                 CheckedAt = DateTimeOffset.UtcNow.AddHours(-1),
             });
             db.HealthCheckResults.Add(new HealthCheckResult
             {
-                HealthCheckId = checkId, Status = HealthStatus.Healthy,
+                HealthCheckId = checkId,
+                Status = HealthStatus.Healthy,
                 CheckedAt = DateTimeOffset.UtcNow,
             });
             await db.SaveChangesAsync();
@@ -224,8 +234,10 @@ public class EnvironmentsEndpointTests : IAsyncLifetime
         var (host, port) = ParsePgEndpoint();
         var created = await _client.PostAsJsonAsync("/api/health", new
         {
-            name = "pg tcp", kind = "tcp",
-            target = $"{host}:{port}", intervalSeconds = 60,
+            name = "pg tcp",
+            kind = "tcp",
+            target = $"{host}:{port}",
+            intervalSeconds = 60,
         });
         Assert.Equal(HttpStatusCode.OK, created.StatusCode);
         var check = (await created.Content

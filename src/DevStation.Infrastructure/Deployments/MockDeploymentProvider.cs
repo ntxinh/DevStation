@@ -54,8 +54,10 @@ public sealed class MockDeploymentProvider : IDeploymentProvider
         var run = new Run(
             new Deployment
             {
-                ProjectId = projectId, EnvironmentId = environmentId,
-                Commit = commit, Status = DeploymentStatus.Queued,
+                ProjectId = projectId,
+                EnvironmentId = environmentId,
+                Commit = commit,
+                Status = DeploymentStatus.Queued,
                 TriggeredBy = triggeredBy,
             },
             [], new CancellationTokenSource());

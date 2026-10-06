@@ -26,8 +26,8 @@ services:
     build:
       context: .
       dockerfile: docker/web.Dockerfile
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:5080
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:5080
     ports: ["3000:3000"]
     depends_on: [api]
 volumes:

@@ -48,8 +48,12 @@ public class ProjectsEndpointTests : IAsyncLifetime
     {
         var created = await _client.PostAsJsonAsync("/api/projects", new
         {
-            name = "demo", description = "d", localPath = Path.GetTempPath().TrimEnd('/'),
-            defaultBranch = "main", technology = "dotnet", tags = new[] { "x" },
+            name = "demo",
+            description = "d",
+            localPath = Path.GetTempPath().TrimEnd('/'),
+            defaultBranch = "main",
+            technology = "dotnet",
+            tags = new[] { "x" },
         });
         Assert.Equal(HttpStatusCode.OK, created.StatusCode);
         var env = await created.Content.ReadFromJsonAsync<ApiEnvelope<ProjectDto>>();

@@ -33,8 +33,11 @@ public static class DatabasesEndpoints
         api.MapDelete("/databases/connections/{id:guid}", async (Guid id,
                 bool? confirm, DeleteConnectionHandler h, ClaimsPrincipal u,
                 CancellationToken ct)
-            => { ConfirmGate.Require(confirm == true);
-                 await h.Handle(id, u, ct); return ApiResult.Ok(new { deleted = true }); })
+            =>
+        {
+            ConfirmGate.Require(confirm == true);
+            await h.Handle(id, u, ct); return ApiResult.Ok(new { deleted = true });
+        })
             .RequireAuthorization("Execute");
         api.MapPost("/databases/connections/{id:guid}/test", async (Guid id,
                 TestConnectionHandler h, ClaimsPrincipal u, CancellationToken ct)
@@ -64,7 +67,8 @@ public static class DatabasesEndpoints
             .RequireAuthorization("Execute");
         api.MapDelete("/databases/saved-queries/{id:guid}", async (Guid id,
                 DeleteSavedQueryHandler h, ClaimsPrincipal u, CancellationToken ct)
-            => { await h.Handle(id, u, ct); return ApiResult.Ok(new { deleted = true }); })
+            =>
+        { await h.Handle(id, u, ct); return ApiResult.Ok(new { deleted = true }); })
             .RequireAuthorization("Execute");
     }
 }

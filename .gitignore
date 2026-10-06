@@ -11,8 +11,12 @@ playwright-report/
 
 # env / ide
 .env
+.env.local
 .idea/
 .vs/
+
+# e2e
+test-results/
 
 # worktrees
 .worktrees/

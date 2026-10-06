@@ -136,8 +136,14 @@ public sealed class ExecuteQueryHandler(IDevStationDb db,
         await db.SaveChangesAsync(CancellationToken.None);
         await audit.Record("database.query", "database_connection", conn.Id,
             user.Identity?.Name, result is null ? "error" : "ok",
-            new { tier = tier.ToString(), verdict.MultiStatement,
-                  rows = result?.RowCount, ms = result?.DurationMs, errorCode },
+            new
+            {
+                tier = tier.ToString(),
+                verdict.MultiStatement,
+                rows = result?.RowCount,
+                ms = result?.DurationMs,
+                errorCode
+            },
             CancellationToken.None);
 
         if (errorCode is not null)
