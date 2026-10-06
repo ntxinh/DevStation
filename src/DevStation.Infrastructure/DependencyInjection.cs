@@ -11,6 +11,7 @@ using DevStation.Infrastructure.Git;
 using DevStation.Infrastructure.Health;
 using DevStation.Infrastructure.Jobs;
 using DevStation.Infrastructure.Logging;
+using DevStation.Infrastructure.Logs;
 using DevStation.Infrastructure.Persistence;
 using DevStation.Infrastructure.Secrets;
 using Microsoft.EntityFrameworkCore;
@@ -41,10 +42,13 @@ public static class DependencyInjection
         services.AddSingleton<IDatabaseProvider, SqlServerProvider>();
         services.AddSingleton<ISecretStore, EnvSecretStore>();
 
-        var sink = new InMemoryLogSink();
-        services.AddSingleton(sink);
-        services.AddSingleton<ILogSink>(sink);
-        services.AddSingleton<ILogQuery>(sink);
+        services.AddSingleton<LogBuffer>();
+        services.AddSingleton<ILogSink>(sp => sp.GetRequiredService<LogBuffer>());
+        services.AddSingleton<ILogQuery>(sp => sp.GetRequiredService<LogBuffer>());
+        services.AddSingleton<ILoggerProvider>(sp => new BufferedLoggerProvider(
+            sp.GetRequiredService<ILogSink>(),
+            Enum.TryParse<LogLevel>(config["Logging:Buffered:MinLevel"],
+                true, out var lvl) ? lvl : LogLevel.Information));
         services.AddHttpClient();
 
         // Deployments:Provider = mock|github (default mock)

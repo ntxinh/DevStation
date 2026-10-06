@@ -2,7 +2,7 @@ using DevStation.Application.Shared.Providers;
 using DevStation.Application.Shared.Results;
 using DevStation.Domain.Enums;
 using DevStation.Infrastructure.Deployments;
-using DevStation.Infrastructure.Logging;
+using DevStation.Infrastructure.Logs;
 using DevStation.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,7 +11,7 @@ namespace DevStation.Tests.Unit.Deployments;
 
 public class MockProviderTests
 {
-    private static MockDeploymentProvider NewProvider(InMemoryLogSink sink,
+    private static MockDeploymentProvider NewProvider(LogBuffer sink,
         DevStationDbContext? db, string name)
     {
         var services = new ServiceCollection();
@@ -42,7 +42,7 @@ public class MockProviderTests
     [Fact]
     public async Task Start_creates_row_queued_then_progresses_to_succeeded()
     {
-        var sink = new InMemoryLogSink();
+        var sink = new LogBuffer();
         var db = new DevStationDbContext(new DbContextOptionsBuilder<DevStationDbContext>()
             .UseInMemoryDatabase("mockdep1").Options);
         var p = NewProvider(sink, db, "mockdep1");
@@ -75,7 +75,7 @@ public class MockProviderTests
     [Fact]
     public async Task FailRate_one_always_fails()
     {
-        var sink = new InMemoryLogSink();
+        var sink = new LogBuffer();
         var sp = new ServiceCollection().BuildServiceProvider();
         var p = new MockDeploymentProvider(sp.GetRequiredService<IServiceScopeFactory>(),
             sink, options: new MockDeploymentOptions { QueueSeconds = 0, RunSeconds = 0, FailRate = 1 });
@@ -88,7 +88,7 @@ public class MockProviderTests
     [Fact]
     public async Task Cancel_queued_or_running_marks_cancelled()
     {
-        var sink = new InMemoryLogSink();
+        var sink = new LogBuffer();
         var sp = new ServiceCollection().BuildServiceProvider();
         var p = new MockDeploymentProvider(sp.GetRequiredService<IServiceScopeFactory>(),
             sink,
@@ -105,7 +105,7 @@ public class MockProviderTests
     [Fact]
     public async Task Cancel_finished_throws_409()
     {
-        var sink = new InMemoryLogSink();
+        var sink = new LogBuffer();
         var sp = new ServiceCollection().BuildServiceProvider();
         var p = new MockDeploymentProvider(sp.GetRequiredService<IServiceScopeFactory>(),
             sink, options: new MockDeploymentOptions { QueueSeconds = 0, RunSeconds = 0 });
@@ -121,7 +121,7 @@ public class MockProviderTests
     [Fact]
     public async Task Cancel_unknown_throws_404()
     {
-        var sink = new InMemoryLogSink();
+        var sink = new LogBuffer();
         var sp = new ServiceCollection().BuildServiceProvider();
         var p = new MockDeploymentProvider(sp.GetRequiredService<IServiceScopeFactory>(), sink);
 
