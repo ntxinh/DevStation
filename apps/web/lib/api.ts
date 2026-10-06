@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-const TOKEN_KEY = "devstation.token";
+export const TOKEN_KEY = "devstation.token";
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY);
