@@ -16,3 +16,4 @@ playwright-report/
 
 # worktrees
 .worktrees/
+*.tsbuildinfo
