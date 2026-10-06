@@ -61,6 +61,7 @@ public class DevStationDbContext(DbContextOptions<DevStationDbContext> options)
                     v => v.Aggregate(0, (h, x) => HashCode.Combine(h, x.GetHashCode())),
                     v => v.ToList()));
         mb.Entity<AuditEvent>().Property(a => a.Metadata).HasColumnType("jsonb");
+        mb.Entity<Notification>().Property(n => n.Metadata).HasColumnType("jsonb");
         mb.Entity<Integration>().Property(i => i.Config).HasColumnType("jsonb");
     }
 }

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { LuPanelLeft, LuSearch } from "react-icons/lu";
 import { apiFetch } from "@/lib/api";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { useUiStore } from "@/stores/ui";
 
 interface Environment {
@@ -32,6 +33,7 @@ export function Topbar() {
         <kbd className="rounded border border-border px-1 text-[10px]">⌘K</kbd>
       </button>
       <div className="flex-1" />
+      <NotificationsBell />
       <select
         value={selectedEnvironmentId ?? ""}
         onChange={(e) => selectEnvironment(e.target.value || null)}

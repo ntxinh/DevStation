@@ -1,4 +1,5 @@
 using DevStation.Application.Shared.Logging;
+using DevStation.Application.Shared.Notifications;
 using DevStation.Application.Shared.Persistence;
 using DevStation.Application.Shared.Providers;
 using DevStation.Domain.Entities;
@@ -72,17 +73,43 @@ internal sealed class DeploymentStore(IServiceScopeFactory? scopeFactory,
         return true;
     }
 
+    /// <summary>`deployment.updated` broadcast; a terminal Failed run also
+    /// raises a deployment_failed notification.</summary>
     public async Task Notify(Deployment run, CancellationToken ct)
     {
-        if (notifier is null) return;
-        try
-        {
-            await notifier.Publish(new DeploymentUpdate(run.Id, run.Status,
-                run.StartedAt, run.FinishedAt), ct);
-        }
-        catch (Exception ex)
-        {
-            logger?.LogWarning(ex, "deployment.updated publish failed");
-        }
+        if (notifier is not null)
+            try
+            {
+                await notifier.Publish(new DeploymentUpdate(run.Id, run.Status,
+                    run.StartedAt, run.FinishedAt), ct);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "deployment.updated publish failed");
+            }
+
+        if (run.Status == DeploymentStatus.Failed && scopeFactory is not null)
+            try
+            {
+                await using var scope = scopeFactory.CreateAsyncScope();
+                var svc = scope.ServiceProvider
+                    .GetService<INotificationService>();
+                if (svc is not null)
+                    await svc.NotifyAsync("deployment_failed",
+                        $"Deployment {run.Id} failed",
+                        $"env {run.EnvironmentId} · commit {run.Commit ?? "-"}",
+                        "error",
+                        new
+                        {
+                            deploymentId = run.Id,
+                            run.EnvironmentId,
+                            run.ProjectId,
+                            run.Commit
+                        }, ct);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "deployment_failed notification failed");
+            }
     }
 }

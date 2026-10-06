@@ -28,7 +28,7 @@ public class GitProviderTests : IDisposable
         Repository.Init(dir);
         using var repo = new Repository(dir);
         File.WriteAllText(Path.Combine(dir, "a.txt"), "hi");
-        Commands.Stage(repo, "a.txt");
+        LibGit2Sharp.Commands.Stage(repo, "a.txt");
         var sig = new Signature("t", "t@t", DateTimeOffset.UtcNow);
         return repo.Commit("initial", sig, sig).Sha;
     }

@@ -8,6 +8,9 @@ using DevStation.Application.Modules.Jobs;
 using DevStation.Application.Modules.Projects;
 using DevStation.Application.Modules.Logs;
 using DevStation.Application.Modules.Services;
+using DevStation.Application.Modules.Commands;
+using DevStation.Application.Modules.Notifications;
+using DevStation.Application.Shared.Notifications;
 using DevStation.Application.Shared.Providers;
 using DevStation.Application.Shared.Logging;
 using DevStation.Infrastructure;
@@ -23,6 +26,8 @@ using DevStation.Web.Modules.Jobs;
 using DevStation.Web.Modules.Logs;
 using DevStation.Web.Modules.Audit;
 using DevStation.Web.Modules.Search;
+using DevStation.Web.Modules.Commands;
+using DevStation.Web.Modules.Notifications;
 using DevStation.Web.Modules.Projects;
 using DevStation.Web.Modules.Services;
 using DevStation.Web.Shared.Auth;
@@ -49,6 +54,7 @@ b.Services.AddSingleton<IHealthCheckNotifier, SignalRHealthNotifier>();
 b.Services.AddSingleton<IDeploymentNotifier, SignalRDeploymentNotifier>();
 b.Services.AddSingleton<IJobNotifier, SignalRJobNotifier>();
 b.Services.AddSingleton<ILogNotifier, SignalRLogNotifier>();
+b.Services.AddSingleton<INotificationNotifier, SignalRNotificationNotifier>();
 b.Services.AddInfrastructure(b.Configuration);
 b.Services.AddProjectsModule().AddDashboardModule()
     .AddEnvironmentsModule().AddHealthModule()
@@ -56,6 +62,8 @@ b.Services.AddProjectsModule().AddDashboardModule()
     .AddDatabasesModule()
     .AddJobsModule()
     .AddDeploymentsModule()
+    .AddCommandsModule()
+    .AddNotificationsModule()
     .AddLogsModule();
 
 var app = b.Build();
@@ -80,10 +88,13 @@ DeploymentsEndpoints.Map(api);
 LogsEndpoints.Map(api);
 AuditEndpoints.Map(api);
 SearchEndpoints.Map(api);
+CommandsEndpoints.Map(api);
+NotificationsEndpoints.Map(api);
 app.MapHub<HealthHub>("/hubs/health").RequireAuthorization("Read");
 app.MapHub<JobsHub>("/hubs/jobs").RequireAuthorization("Read");
 app.MapHub<DeploymentsHub>("/hubs/deployments").RequireAuthorization("Read");
 app.MapHub<LogsHub>("/hubs/logs").RequireAuthorization("Read");
+app.MapHub<NotificationsHub>("/hubs/notifications").RequireAuthorization("Read");
 
 app.Run();
 

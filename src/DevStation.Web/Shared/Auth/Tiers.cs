@@ -1,18 +1,7 @@
+using DevStation.Application.Shared.Security;
 using Microsoft.AspNetCore.Authorization;
 
 namespace DevStation.Web.Shared.Auth;
-
-public static class Tiers
-{
-    public static int Rank(string t) => t switch
-    {
-        "read" => 1,
-        "execute" => 2,
-        "deploy" => 3,
-        "admin" => 4,
-        _ => 0,
-    };
-}
 
 public sealed class TierRequirement(string tier) : IAuthorizationRequirement
 {

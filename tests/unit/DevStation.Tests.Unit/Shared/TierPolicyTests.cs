@@ -1,4 +1,4 @@
-using DevStation.Web.Shared.Auth;
+using DevStation.Application.Shared.Security;
 
 namespace DevStation.Tests.Unit.Shared;
 

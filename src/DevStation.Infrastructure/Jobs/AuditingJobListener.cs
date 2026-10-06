@@ -1,4 +1,5 @@
 using DevStation.Application.Shared.Auditing;
+using DevStation.Application.Shared.Notifications;
 using DevStation.Application.Shared.Persistence;
 using DevStation.Application.Shared.Providers;
 using DevStation.Domain.Entities;
@@ -85,6 +86,22 @@ public sealed class AuditingJobListener(IServiceScopeFactory scopeFactory,
             {
                 logger.LogWarning(ex, "job.updated publish failed");
             }
+        }
+
+        if (!ok)
+        {
+            var notifications = sp.GetService<INotificationService>();
+            if (notifications is not null)
+                try
+                {
+                    await notifications.NotifyAsync("job_failed",
+                        $"Job {jobName} failed", error, "error",
+                        new { jobDefinitionId = def.Id, jobName }, ct);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "job_failed notification failed");
+                }
         }
     }
 
