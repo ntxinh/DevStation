@@ -2,8 +2,10 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using DevStation.Application.Shared.Results;
+using DevStation.Application.Shared.Secrets;
 using DevStation.Domain.Entities;
 using DevStation.Domain.Enums;
+using DevStation.Domain.ValueObjects;
 using DevStation.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -114,12 +116,46 @@ public class EnvironmentsEndpointTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK,
             (await _client.PostAsync($"/api/health/{checkId}/check", null)).StatusCode);
 
-        // a service bound to the env — no services API yet, seed directly
+        // a service bound to the env — no services API yet, seed directly —
+        // plus a health check hanging off that service, and a db connection
+        // linked to the env with a stored password
+        Guid serviceId, svcCheckId, connId;
+        const string secretKey = "dbconn-test-cascade";
         await using (var db = NewDb())
         {
-            db.Services.Add(new Service { EnvironmentId = envId, Name = "svc" });
+            var svc = new Service { EnvironmentId = envId, Name = "svc" };
+            db.Services.Add(svc);
             await db.SaveChangesAsync();
+            serviceId = svc.Id;
+
+            var svcCheck = new HealthCheck
+            {
+                ServiceId = serviceId, Name = "svc check",
+                Kind = "tcp", Target = "localhost:1",
+            };
+            db.HealthChecks.Add(svcCheck);
+            var conn = new DatabaseConnection
+            {
+                EnvironmentId = envId, Name = "prod-db", Kind = "postgresql",
+                Host = "localhost", Port = 5432, Database = "d",
+                Username = "u", ReadOnly = false,
+                PasswordRef = new SecretRef(secretKey),
+            };
+            db.DatabaseConnections.Add(conn);
+            db.QueryHistory.Add(new QueryHistoryEntry
+            {
+                ConnectionId = conn.Id, Sql = "select 1",
+            });
+            db.SavedQueries.Add(new SavedQuery
+            {
+                ConnectionId = conn.Id, Name = "q", Sql = "select 1",
+            });
+            await db.SaveChangesAsync();
+            svcCheckId = svcCheck.Id;
+            connId = conn.Id;
         }
+        var secrets = _factory.Services.GetRequiredService<ISecretStore>();
+        await secrets.SetAsync(secretKey, "pw");
 
         Assert.Equal(HttpStatusCode.OK,
             (await _client.DeleteAsync($"/api/environments/{envId}?confirm=true"))
@@ -129,11 +165,20 @@ public class EnvironmentsEndpointTests : IAsyncLifetime
         {
             Assert.Empty(await db.HealthChecks
                 .Where(h => h.EnvironmentId == envId).ToListAsync());
+            Assert.Empty(await db.HealthChecks
+                .Where(h => h.Id == svcCheckId).ToListAsync());
             Assert.Empty(await db.HealthCheckResults
                 .Where(r => r.HealthCheckId == checkId).ToListAsync());
             Assert.Empty(await db.Services
                 .Where(s => s.EnvironmentId == envId).ToListAsync());
+            Assert.Empty(await db.DatabaseConnections
+                .Where(c => c.EnvironmentId == envId).ToListAsync());
+            Assert.Empty(await db.QueryHistory
+                .Where(h => h.ConnectionId == connId).ToListAsync());
+            Assert.Empty(await db.SavedQueries
+                .Where(q => q.ConnectionId == connId).ToListAsync());
         }
+        Assert.Null(await secrets.GetAsync(secretKey));
     }
 
     [Fact]

@@ -51,7 +51,7 @@ missing confirm → `400 CONFIRMATION_REQUIRED`.
 | `DELETE /api/databases/connections/{id}?confirm=true` | execute | confirm-gated |
 | `POST /api/databases/connections/{id}/test` | execute | connectivity probe |
 | `GET /api/databases/connections/{id}/schema` | read | schemas → tables → columns/indexes |
-| `POST /api/databases/connections/{id}/execute?confirm=` | execute | `{sql}`; read statements run free, writes need confirm, dangerous tier needs `confirm=true`; prod-linked conns block writes; `maxRows`/`timeoutSeconds` enforced |
+| `POST /api/databases/connections/{id}/execute?confirm=` | execute | `{sql}`; read/write statements run free, destructive/dangerous statements require `confirm=true`; prod-linked conns block writes; `maxRows`/`timeoutSeconds` enforced |
 | `GET /api/databases/history?connectionId=&limit=` | read | |
 | `GET /api/databases/saved-queries?connectionId=` | read | |
 | `POST /api/databases/saved-queries` | execute | |
@@ -106,6 +106,7 @@ missing confirm → `400 CONFIRMATION_REQUIRED`.
 
 ## Error codes
 
-`VALIDATION_ERROR` 400 · `CONFIRMATION_REQUIRED` 400 · `UNAUTHORIZED` 401 ·
-`FORBIDDEN`/`HTTP_403` 403 · `NOT_FOUND` 404 · `INTEGRATION_ERROR` 502 ·
-`HTTP_<n>` fallback.
+`VALIDATION_ERROR` 400 · `CONFIRMATION_REQUIRED` 400 · `NOT_FOUND` 404 ·
+`INTEGRATION_ERROR` 502 · `HTTP_<n>` fallback. `401`/`403` from the auth and
+tier middleware are **bare** responses (no envelope) — only `AppException`s
+(e.g. `FORBIDDEN`, `SQL_READONLY`) come back enveloped.

@@ -23,6 +23,7 @@ public class McpAiEndpointTests : IAsyncLifetime
                 {
                     ["ConnectionStrings:Default"] = _pg.GetConnectionString(),
                     ["DevStation:Token"] = "test",
+                    ["DevStation:TokenTiers:read-token"] = "read",
                     ["DevStation:AllowedRepoRoots:0"] =
                         Path.GetTempPath().TrimEnd('/'),
                     // no Ai:Provider → null provider → 503 AI_UNAVAILABLE
@@ -98,6 +99,28 @@ public class McpAiEndpointTests : IAsyncLifetime
         var res = await _client.PostAsJsonAsync(
             "/api/mcp/tools/service_restart_x/invoke", new { args = new { } });
         Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task Invoke_run_health_check_requires_execute_tier()
+    {
+        // run_health_check writes a result row — a read-tier token must not
+        // reach the handler (403 enveloped); execute+ passes the gate and the
+        // bogus id then fails with the handler's NOT_FOUND.
+        using var readOnly = _factory.CreateClient();
+        readOnly.DefaultRequestHeaders.Add("Authorization", "Bearer read-token");
+        var denied = await readOnly.PostAsJsonAsync(
+            "/api/mcp/tools/run_health_check/invoke",
+            new { args = new { id = Guid.NewGuid().ToString() } });
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        var err = await denied.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("FORBIDDEN",
+            err.GetProperty("error").GetProperty("code").GetString());
+
+        var allowed = await _client.PostAsJsonAsync(
+            "/api/mcp/tools/run_health_check/invoke",
+            new { args = new { id = Guid.NewGuid().ToString() } });
+        Assert.Equal(HttpStatusCode.NotFound, allowed.StatusCode);
     }
 
     [Fact]

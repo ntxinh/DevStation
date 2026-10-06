@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using DevStation.Application.Modules.Mcp;
 using DevStation.Application.Shared.Commands;
 using DevStation.Application.Shared.Results;
@@ -32,7 +33,7 @@ public static class McpEndpoints
 
         api.MapPost("/mcp/tools/{name}/invoke", async (string name,
                 McpInvokeRequest r, McpToolInvoker invoker,
-                CancellationToken ct)
-            => ApiResult.Ok(await invoker.Invoke(name, r.Args, ct)));
+                ClaimsPrincipal u, CancellationToken ct)
+            => ApiResult.Ok(await invoker.Invoke(name, r.Args, u, ct)));
     }
 }

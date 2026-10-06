@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using DevStation.Application.Modules.Containers.ListContainers;
 using DevStation.Application.Modules.Deployments.ListDeployments;
@@ -13,6 +14,7 @@ using DevStation.Application.Modules.Services.ListServices;
 using DevStation.Application.Shared.Commands;
 using DevStation.Application.Shared.Logging;
 using DevStation.Application.Shared.Results;
+using DevStation.Application.Shared.Security;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DevStation.Application.Modules.Mcp;
@@ -25,8 +27,17 @@ namespace DevStation.Application.Modules.Mcp;
 public sealed class McpToolInvoker(IServiceProvider sp, CommandRegistry commands)
 {
     public async Task<object?> Invoke(string name, JsonElement? args,
-        CancellationToken ct)
+        ClaimsPrincipal user, CancellationToken ct)
     {
+        // run_health_check writes a health_check_results row — Execute-tier
+        // action like POST /api/health/{id}/check, so the catalog lists it
+        // but the invoker enforces the tier (enveloped 403 FORBIDDEN).
+        if (name == "run_health_check"
+            && Tiers.Rank(user.FindFirst("tier")?.Value ?? "")
+                < Tiers.Rank("execute"))
+            throw new AppException("FORBIDDEN", 403,
+                "run_health_check requires the execute tier");
+
         // explicit read tools first (stable names independent of entity ids)
         if (McpToolCatalog.ExplicitTools.Any(t => t.Name == name))
             return await Dispatch(name, args, ct);

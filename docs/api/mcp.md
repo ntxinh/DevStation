@@ -31,7 +31,7 @@ Returns a JSON array of `{name, description, inputSchema}` descriptors:
 | `list_jobs` | — | `ListJobsHandler` |
 | `list_deployments` | `environmentId? projectId? take?` | `ListDeploymentsHandler` |
 | `get_logs` | `source? severity? q? take?` | `GetLogsHandler` |
-| `run_health_check` | `id` | `RunHealthCheckHandler` |
+| `run_health_check` | `id` | `RunHealthCheckHandler` — **execute tier required** |
 
 `inputSchema` is a JSON-Schema-ish `{type:"object", properties, required}`.
 
@@ -45,3 +45,8 @@ calling `POST /api/mcp/tools/service_restart_<id>/invoke` returns
 Body: `{ "args": { … } }`. Response: the handler's DTO inside `data`, or the
 usual error envelope (`MCP_TOOL_UNKNOWN` 404 for unknown/write-ish names,
 `VALIDATION_ERROR` 400 for malformed args).
+
+`run_health_check` is the one exception to read-only: it persists a
+`health_check_results` row (same as `POST /api/health/{id}/check`), so the
+invoker requires the **execute** tier for that tool name — a read-tier
+token gets an enveloped `403 FORBIDDEN`.
