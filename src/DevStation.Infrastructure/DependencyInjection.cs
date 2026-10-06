@@ -3,6 +3,7 @@ using DevStation.Application.Shared.Persistence;
 using DevStation.Application.Shared.Providers;
 using DevStation.Infrastructure.Auditing;
 using DevStation.Infrastructure.Git;
+using DevStation.Infrastructure.Health;
 using DevStation.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -21,6 +22,8 @@ public static class DependencyInjection
         services.AddScoped<IDevStationDb>(sp => sp.GetRequiredService<DevStationDbContext>());
         services.AddScoped<IAuditWriter, AuditWriter>();
         services.AddSingleton<IGitProvider, LibGit2SharpGitProvider>();
+        services.AddSingleton<IHealthCheckExecutor, HealthCheckExecutor>();
+        services.AddHostedService<HealthCheckPoller>();
         return services;
     }
 }

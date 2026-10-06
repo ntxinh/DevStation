@@ -1,8 +1,13 @@
 using DevStation.Application.Modules.Dashboard.GetDashboardSummary;
+using DevStation.Application.Modules.Environments;
+using DevStation.Application.Modules.Health;
 using DevStation.Application.Modules.Projects;
+using DevStation.Application.Shared.Providers;
 using DevStation.Infrastructure;
 
+using DevStation.Web.Hubs;
 using DevStation.Web.Modules.Dashboard;
+using DevStation.Web.Modules.Environments;
 using DevStation.Web.Modules.Health;
 using DevStation.Web.Modules.Projects;
 using DevStation.Web.Shared.Auth;
@@ -24,8 +29,11 @@ b.Services.AddAuthorization(o =>
         o.AddPolicy(t, p => p.Requirements.Add(new TierRequirement(t.ToLowerInvariant())));
 });
 b.Services.AddSingleton<IAuthorizationHandler, TierHandler>();
+b.Services.AddSignalR();
+b.Services.AddSingleton<IHealthCheckNotifier, SignalRHealthNotifier>();
 b.Services.AddInfrastructure(b.Configuration);
-b.Services.AddProjectsModule().AddDashboardModule();
+b.Services.AddProjectsModule().AddDashboardModule()
+    .AddEnvironmentsModule().AddHealthModule();
 
 var app = b.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
@@ -37,9 +45,11 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok", uptime = Environment
     .AllowAnonymous();
 
 var api = app.MapModuleEndpoints();
-HealthModule.Map(api); // placeholder returning module status list — replaced by real module in Phase 2
 ProjectsEndpoints.Map(api);
+EnvironmentsEndpoints.Map(api);
+HealthEndpoints.Map(api);
 DashboardEndpoints.Map(api);
+app.MapHub<HealthHub>("/hubs/health").RequireAuthorization("Read");
 
 app.Run();
 

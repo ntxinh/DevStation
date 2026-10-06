@@ -1,7 +1,9 @@
+using System.Text.Json;
 using DevStation.Domain.Entities;
 using DevStation.Domain.Enums;
 using DevStation.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using DevStation.Application.Shared.Persistence;
 
@@ -49,7 +51,15 @@ public class DevStationDbContext(DbContextOptions<DevStationDbContext> options)
         mb.Entity<Integration>().Property(i => i.CredentialsRef).HasColumnName("secret_ref");
         mb.Entity<AppEnvironment>()
             .Property(e => e.Variables)
-            .HasColumnType("jsonb");
+            .HasColumnType("jsonb")
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                s => JsonSerializer.Deserialize<List<EnvironmentVariable>>(s,
+                    (JsonSerializerOptions?)null) ?? new List<EnvironmentVariable>(),
+                new ValueComparer<List<EnvironmentVariable>>(
+                    (a, b) => a!.SequenceEqual(b!),
+                    v => v.Aggregate(0, (h, x) => HashCode.Combine(h, x.GetHashCode())),
+                    v => v.ToList()));
         mb.Entity<AuditEvent>().Property(a => a.Metadata).HasColumnType("jsonb");
         mb.Entity<Integration>().Property(i => i.Config).HasColumnType("jsonb");
     }

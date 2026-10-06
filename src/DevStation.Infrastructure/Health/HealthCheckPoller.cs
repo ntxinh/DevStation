@@ -1,0 +1,70 @@
+using DevStation.Application.Shared.Persistence;
+using DevStation.Application.Shared.Providers;
+using DevStation.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace DevStation.Infrastructure.Health;
+
+/// <summary>
+/// Polls every enabled health check on its own IntervalSeconds, persists a
+/// HealthCheckResult, and broadcasts `health.updated` via IHealthCheckNotifier.
+/// </summary>
+public sealed class HealthCheckPoller(
+    IServiceScopeFactory scopeFactory,
+    IHealthCheckExecutor executor,
+    ILogger<HealthCheckPoller> logger,
+    IHealthCheckNotifier? notifier = null) : BackgroundService
+{
+    private static readonly TimeSpan Tick = TimeSpan.FromSeconds(5);
+    private readonly Dictionary<Guid, DateTimeOffset> _nextRun = new();
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(Tick);
+        while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
+        {
+            try
+            {
+                await TickOnce(stoppingToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "health poll tick failed");
+            }
+        }
+    }
+
+    private async Task TickOnce(CancellationToken ct)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<IDevStationDb>();
+        var now = DateTimeOffset.UtcNow;
+
+        var due = (await db.HealthChecks.Where(h => h.Enabled).ToListAsync(ct))
+            .Where(h => !_nextRun.TryGetValue(h.Id, out var next) || next <= now)
+            .ToList();
+        if (due.Count == 0) return;
+
+        // run checks off the DbContext (not thread-safe) — persist + publish after
+        var results = await Task.WhenAll(due.Select(async h =>
+            (Check: h, Result: await executor.Execute(
+                new HealthCheckDef(h.Id, h.Kind, h.Target, h.TimeoutSeconds), ct))));
+
+        foreach (var (h, r) in results)
+        {
+            _nextRun[h.Id] = now + TimeSpan.FromSeconds(h.IntervalSeconds);
+            db.HealthCheckResults.Add(new HealthCheckResult
+            {
+                HealthCheckId = h.Id, Status = r.Status,
+                LatencyMs = r.LatencyMs, Error = r.Error, CheckedAt = r.CheckedAt,
+            });
+            if (notifier is not null)
+                await notifier.Publish(new HealthCheckUpdate(h.Id, r.Status,
+                    r.LatencyMs, r.Error, r.CheckedAt), ct);
+        }
+        await db.SaveChangesAsync(ct);
+    }
+}

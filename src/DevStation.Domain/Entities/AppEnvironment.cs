@@ -6,8 +6,13 @@ public class AppEnvironment
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = "";
     public string? Description { get; set; }
-    public string Type { get; set; } = "development"; // development|staging|production — production blocks writes
+    public string Type { get; set; } = "dev"; // dev|qa|staging|production
     public string? BaseUrl { get; set; }
+    public string? HealthCheckUrl { get; set; }
+    public string? GitBranch { get; set; }
+    public string? GitCommit { get; set; }
+    public string? DeploymentProvider { get; set; }
+    public string Status { get; set; } = "unknown"; // manual/deliberate status override (e.g. "maintenance")
     public List<EnvironmentVariable> Variables { get; set; } = []; // jsonb; secret=true → value masked/compared by presence only
     public int Order { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

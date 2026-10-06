@@ -39,9 +39,25 @@ namespace DevStation.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("DeploymentProvider")
+                        .HasColumnType("text")
+                        .HasColumnName("deployment_provider");
+
                     b.Property<string>("Description")
                         .HasColumnType("text")
                         .HasColumnName("description");
+
+                    b.Property<string>("GitBranch")
+                        .HasColumnType("text")
+                        .HasColumnName("git_branch");
+
+                    b.Property<string>("GitCommit")
+                        .HasColumnType("text")
+                        .HasColumnName("git_commit");
+
+                    b.Property<string>("HealthCheckUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("health_check_url");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -51,6 +67,11 @@ namespace DevStation.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer")
                         .HasColumnName("order");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
 
                     b.Property<string>("Type")
                         .IsRequired()
