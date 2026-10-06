@@ -37,7 +37,7 @@ public sealed class GetDashboardSummaryHandler(IDevStationDb db,
         // runtime absent/erroring → 0; never fail the dashboard over containers
         int containerCount;
         try { containerCount = (await containers.ListAsync(ct)).Count; }
-        catch (AppException) { containerCount = 0; }
+        catch (Exception) { containerCount = 0; }
         return new DashboardSummary(projects, services, containerCount, health, recent);
     }
 }

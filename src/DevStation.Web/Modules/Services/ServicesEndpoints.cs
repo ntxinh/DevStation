@@ -20,8 +20,8 @@ public static class ServicesEndpoints
             => ApiResult.Ok(await h.Handle(r, u, ct)))
             .RequireAuthorization("Execute");
         api.MapGet("/services/{id:guid}/health", async (Guid id,
-                GetServiceHealthHandler h, CancellationToken ct)
-            => ApiResult.Ok(await h.Handle(id, ct)))
+                GetServiceHealthHandler h, ClaimsPrincipal u, CancellationToken ct)
+            => ApiResult.Ok(await h.Handle(id, u, ct)))
             .RequireAuthorization("Execute");
         api.MapPost("/services/{id:guid}/restart", async (Guid id, bool? confirm,
                 RestartServiceHandler h, ClaimsPrincipal u, CancellationToken ct)

@@ -8,9 +8,11 @@ using Microsoft.EntityFrameworkCore;
 namespace DevStation.Application.Modules.Services.RestartService;
 
 /// <summary>Restart is only possible when the service maps to a runtime container;
-/// otherwise there is no process to control → SERVICE_NOT_RESTARTABLE.</summary>
+/// otherwise there is no process to control → SERVICE_NOT_RESTARTABLE.
+/// After the restart completes, re-checks health (same probe as GET health) and
+/// persists the fresh status.</summary>
 public sealed class RestartServiceHandler(IDevStationDb db,
-    IContainerProvider containers, IAuditWriter audit)
+    IContainerProvider containers, IHealthCheckExecutor executor, IAuditWriter audit)
 {
     public async Task<ServiceDto> Handle(Guid id, ClaimsPrincipal user,
         CancellationToken ct)
@@ -22,10 +24,22 @@ public sealed class RestartServiceHandler(IDevStationDb db,
                 "Service has no container to restart");
 
         await containers.RestartAsync(s.ContainerId, ct);
-        s.UpdatedAt = DateTimeOffset.UtcNow;
-        await db.SaveChangesAsync(ct);
+
+        string? health = null;
+        if (!string.IsNullOrWhiteSpace(s.Url))
+        {
+            var r = await ServiceHealthCheck.Recheck(db, executor, s, ct);
+            health = r.Status.ToString().ToLowerInvariant();
+        }
+        else
+        {
+            s.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(ct);
+        }
+
         await audit.Record("service.restart", "service", s.Id,
-            user.Identity?.Name, "ok", new { s.ContainerId }, ct);
+            user.Identity?.Name, "ok",
+            new { s.ContainerId, health }, ct);
         return ServiceDto.Of(s);
     }
 }

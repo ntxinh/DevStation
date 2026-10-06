@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using DevStation.Application.Modules.Health;
 using DevStation.Application.Shared.Auditing;
 using DevStation.Application.Shared.Persistence;
@@ -13,7 +14,8 @@ namespace DevStation.Application.Modules.Services.GetServiceHealth;
 public sealed class GetServiceHealthHandler(IDevStationDb db,
     IHealthCheckExecutor executor, IAuditWriter audit)
 {
-    public async Task<HealthResultDto> Handle(Guid id, CancellationToken ct)
+    public async Task<HealthResultDto> Handle(Guid id, ClaimsPrincipal user,
+        CancellationToken ct)
     {
         var s = await db.Services.FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new AppException("NOT_FOUND", 404, "Service not found");
@@ -21,17 +23,11 @@ public sealed class GetServiceHealthHandler(IDevStationDb db,
             throw new AppException("SERVICE_NOT_CHECKABLE", 422,
                 "Service has no url/address to check");
 
-        var kind = Uri.TryCreate(s.Url, UriKind.Absolute, out var uri) &&
-                   uri.Scheme is "http" or "https" ? "http" : "tcp";
-        var r = await executor.Execute(
-            new HealthCheckDef(s.Id, kind, s.Url, 5), ct);
-
-        s.Status = r.Status;
-        s.UpdatedAt = DateTimeOffset.UtcNow;
-        await db.SaveChangesAsync(ct);
-        await audit.Record("service.health", "service", s.Id, null,
+        var r = await ServiceHealthCheck.Recheck(db, executor, s, ct);
+        await audit.Record("service.health", "service", s.Id,
+            user.Identity?.Name,
             r.Status == HealthStatus.Healthy ? "ok" : "error",
-            new { kind, s.Url, r.LatencyMs }, ct);
+            new { s.Url, r.LatencyMs }, ct);
         return new HealthResultDto(r.Status.ToString().ToLowerInvariant(),
             r.LatencyMs, r.Error, r.CheckedAt);
     }
